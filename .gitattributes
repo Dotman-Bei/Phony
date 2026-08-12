@@ -1,0 +1,14 @@
+# Normalise line endings in the repository to LF regardless of who commits.
+# Without this, a Windows checkout commits CRLF and every file reads as fully rewritten to
+# anyone on Linux or macOS — which on a two-developer project turns every merge into a
+# whole-file conflict.
+* text=auto eol=lf
+
+# Generated, but committed on purpose: exportAbi.ts writes it and the frontend build needs
+# it. Marking it as generated keeps it collapsed in diffs and out of language statistics.
+web/src/lib/contracts.generated.ts linguist-generated=true
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

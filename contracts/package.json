@@ -1,0 +1,38 @@
+{
+  "name": "phony-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Phony — RWA yield restaking & strategy vault on BOT Chain",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "node": "hardhat node",
+    "new-deployer": "hardhat run scripts/newDeployer.ts",
+    "preflight:testnet": "hardhat run scripts/preflight.ts --network botTestnet",
+    "preflight:mainnet": "hardhat run scripts/preflight.ts --network botMainnet",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network botTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network botMainnet",
+    "verify:testnet": "hardhat run scripts/verify.ts --network botTestnet",
+    "verify:mainnet": "hardhat run scripts/verify.ts --network botMainnet",
+    "e2e:testnet": "hardhat run scripts/e2e.ts --network botTestnet",
+    "harvest-bot": "hardhat run scripts/harvestBot.ts --network botTestnet",
+    "export-abi": "hardhat run scripts/exportAbi.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.1.2",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.13.1",
+    "hardhat": "^2.22.19",
+    "solidity-coverage": "^0.8.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.1.0",
+    "dotenv": "^16.4.7"
+  }
+}

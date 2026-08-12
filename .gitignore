@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+
+# secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# hardhat
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+contracts/coverage/
+contracts/coverage.json
+contracts/.coverage_artifacts/
+contracts/.coverage_cache/
+contracts/.coverage_contracts/
+
+# deployment manifests are committed on purpose: `exportAbi.ts` reads them, and the
+# frontend build needs the addresses. They contain no secrets.
+!contracts/deployments/
+
+# next
+web/.next/
+web/out/
+web/next-env.d.ts
+web/*.tsbuildinfo
+web/.vercel/
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log

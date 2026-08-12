@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <!--
+    Favicon. Next's App Router picks this up from src/app/icon.svg automatically and emits
+    the <link rel="icon"> tag, so there is nothing to wire up in layout.tsx.
+
+    Same geometry as components/ui/phony-mark.tsx, but the colours are hardcoded rather
+    than tokenised: a favicon is rendered by browser chrome, outside the page, so it cannot
+    see the stylesheet's custom properties.
+
+    Background is left transparent on purpose. A dark plate would match the app but sit as
+    a black square in a light-themed tab strip; the bare violet mark reads on both.
+  -->
+  <defs>
+    <linearGradient id="g" x1="6" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e4dbff"/>
+      <stop offset="0.28" stop-color="#9d80ff"/>
+      <stop offset="0.62" stop-color="#713dff"/>
+      <stop offset="1" stop-color="#c4b3ff"/>
+    </linearGradient>
+    <linearGradient id="s" x1="14" y1="8" x2="46" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M14 54 L34 43 L18 29 L42 10 L50 40"
+        stroke="url(#g)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14 54 L34 43 L18 29 L42 10 L50 40"
+        stroke="url(#s)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+        transform="translate(-1.6 -1.9)"/>
+</svg>

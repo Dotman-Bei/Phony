@@ -1,0 +1,28 @@
+{
+  "network": "botTestnet",
+  "chainId": 968,
+  "deployer": "0x9376D9a98b7d0DF949eA0a7065948ccBec33C68b",
+  "timestamp": "2026-08-12T22:29:47.346Z",
+  "usesMocks": true,
+  "contracts": {
+    "asset": "0x6F1C75f7844c6Ffb1b1d676767a8749cfD5CDD21",
+    "vault": "0xDcB2D4A08E10850845507B4ddfF95bfFE2411cE5",
+    "router": "0xe0040b6bCA2b68eFA75D0243B98AB71843C2c5B3",
+    "tbillSource": "0x4eFd1A552cdb90467EF6531A01a789fA2a8d4735",
+    "creditPool": "0xe9BA649e96A2B50be4d3F056726209F72Cf2c018",
+    "liquidityPool": "0x81d1235574f05De7582e055c5A36C6FD14fC7928",
+    "tbillStrategy": "0x2d18B99ECcC1C9afc23e0E03fA95979292Da00d1",
+    "creditStrategy": "0x231F6ed0d020376e2c35FC18802BC7c8d0Ffa5CB",
+    "liquidityStrategy": "0x3f7eE71A09970fb8792413FbeB5046fBD2f5486A"
+  },
+  "config": {
+    "allocationsBps": {
+      "tbill": "4000",
+      "credit": "3500",
+      "liquidity": "2000"
+    },
+    "performanceFeeBps": "1000",
+    "depositCap": "0",
+    "reserveBufferBps": "500"
+  }
+}
