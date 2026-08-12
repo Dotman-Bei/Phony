@@ -106,6 +106,34 @@ web/                Next.js 16 frontend — the Kyvrane horizon-light design sys
 
 ---
 
+## Live deployment — BOT Chain Testnet (chain 968)
+
+All nine contracts are deployed and **verified with source** on
+[BOTScan](https://scan.bohr.life). The full deposit → allocate → harvest → withdraw loop
+has run on chain.
+
+| | Address |
+|---|---|
+| **BotVault** (brRWA) | [`0xDcB2D4A08E10850845507B4ddfF95bfFE2411cE5`](https://scan.bohr.life/address/0xDcB2D4A08E10850845507B4ddfF95bfFE2411cE5#code) |
+| **StrategyRouter** | [`0xe0040b6bCA2b68eFA75D0243B98AB71843C2c5B3`](https://scan.bohr.life/address/0xe0040b6bCA2b68eFA75D0243B98AB71843C2c5B3#code) |
+| TBillStrategy — low risk | [`0x2d18B99ECcC1C9afc23e0E03fA95979292Da00d1`](https://scan.bohr.life/address/0x2d18B99ECcC1C9afc23e0E03fA95979292Da00d1#code) |
+| CreditStrategy — medium risk | [`0x231F6ed0d020376e2c35FC18802BC7c8d0Ffa5CB`](https://scan.bohr.life/address/0x231F6ed0d020376e2c35FC18802BC7c8d0Ffa5CB#code) |
+| LiquidityStrategy — high risk | [`0x3f7eE71A09970fb8792413FbeB5046fBD2f5486A`](https://scan.bohr.life/address/0x3f7eE71A09970fb8792413FbeB5046fBD2f5486A#code) |
+| TBILL asset (mock RWA) | [`0x6F1C75f7844c6Ffb1b1d676767a8749cfD5CDD21`](https://scan.bohr.life/address/0x6F1C75f7844c6Ffb1b1d676767a8749cfD5CDD21#code) |
+| MockTBillVault — yield source | [`0x4eFd1A552cdb90467EF6531A01a789fA2a8d4735`](https://scan.bohr.life/address/0x4eFd1A552cdb90467EF6531A01a789fA2a8d4735#code) |
+| MockCreditPool — yield source | [`0xe9BA649e96A2B50be4d3F056726209F72Cf2c018`](https://scan.bohr.life/address/0xe9BA649e96A2B50be4d3F056726209F72Cf2c018#code) |
+| MockLiquidityPool — yield source | [`0x81d1235574f05De7582e055c5A36C6FD14fC7928`](https://scan.bohr.life/address/0x81d1235574f05De7582e055c5A36C6FD14fC7928#code) |
+
+Configured at 40% T-bill / 35% credit / 20% liquidity, leaving a **5% idle reserve buffer**,
+with a 10% performance fee charged on yield only. The vault, router and adapters are real;
+the three yield sources are mocks that pay simulated coupons, so **every screen in the app
+labels this deployment `demo`, never `live`** — real contracts, real transactions, real
+share accounting, simulated coupons.
+
+Deployment manifest: [`contracts/deployments/botTestnet.json`](contracts/deployments/botTestnet.json).
+
+---
+
 ## Quick start
 
 ### Contracts
@@ -171,6 +199,24 @@ npm run deploy:mainnet && npm run verify:mainnet
 Then flip the frontend with one variable: `NEXT_PUBLIC_DEFAULT_CHAIN_ID=677`.
 
 Gas support for mainnet: https://forms.gle/QGWNnmthCDgL92uR9
+
+### Hosting the frontend
+
+The Next.js app lives in `web/`, not the repository root, so the one setting that matters
+is the root directory:
+
+| Vercel setting | Value |
+|---|---|
+| Root Directory | `web` |
+| Framework | Next.js (auto-detected) |
+| Build command | `next build` (default) |
+| `NEXT_PUBLIC_DEFAULT_CHAIN_ID` | `968` for the testnet deployment, `677` after mainnet |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | optional — only adds the WalletConnect QR flow |
+
+Contract addresses are compiled into the bundle via `contracts.generated.ts`, which is
+committed, so the frontend builds on a clean clone with no contract build step. After any
+redeploy of the contracts, run `npm run export-abi` and commit the result — that file is the
+only path by which addresses reach the app.
 
 ---
 
