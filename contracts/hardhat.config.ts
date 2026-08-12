@@ -20,8 +20,25 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    // The in-process network forks BOT Chain testnet, so the test suite runs against the
+    // real BDEX V2 deployment and the real USDT rather than stand-ins for them. There are no
+    // mock contracts in this project to fall back on, which is the point: a swap in a test is
+    // a swap through the same router the vault will use in production, priced by the same
+    // reserves. Set NO_FORK=true for the handful of checks that need no external state.
     hardhat: {
       chainId: 31337,
+      forking: {
+        url: process.env.BOT_TESTNET_RPC || "https://rpc.bohr.life",
+        enabled: process.env.NO_FORK !== "true",
+        // Pin a block for reproducible reserves; unpinned follows the live pool.
+        blockNumber: process.env.FORK_BLOCK ? Number(process.env.FORK_BLOCK) : undefined,
+      },
+      // Hardhat ships hardfork histories for the chains it knows and refuses to execute
+      // historical blocks for the ones it does not. BOT Chain implements EIP-4844, so its
+      // whole history is Cancun-capable as far as this fork is concerned.
+      chains: {
+        968: { hardforkHistory: { cancun: 0 } },
+      },
     },
     localhost: {
       url: "http://127.0.0.1:8545",

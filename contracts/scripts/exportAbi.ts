@@ -19,14 +19,18 @@ const EXPORTS: Array<{ key: string; artifact: string }> = [
   { key: "botVault", artifact: "BotVault.sol/BotVault.json" },
   { key: "strategyRouter", artifact: "StrategyRouter.sol/StrategyRouter.json" },
   { key: "strategyAdapter", artifact: "interfaces/IStrategyAdapter.sol/IStrategyAdapter.json" },
-  { key: "creditStrategy", artifact: "strategies/CreditStrategy.sol/CreditStrategy.json" },
-  { key: "liquidityStrategy", artifact: "strategies/LiquidityStrategy.sol/LiquidityStrategy.json" },
-  { key: "tbillStrategy", artifact: "strategies/TBillStrategy.sol/TBillStrategy.json" },
-  { key: "rwaToken", artifact: "mocks/MockRWAToken.sol/MockRWAToken.json" },
+  { key: "bdexLpStrategy", artifact: "strategies/BdexV2LpStrategy.sol/BdexV2LpStrategy.json" },
+  { key: "bdexPair", artifact: "interfaces/IBdexV2.sol/IBdexV2Pair.json" },
+  // The asset is now the chain's real USDT, so the frontend needs a plain ERC-20 surface for
+  // balance and approval reads. There is no bespoke token contract to export any more.
+  { key: "erc20", artifact: "@openzeppelin/contracts/token/ERC20/IERC20.sol/IERC20.json" },
 ];
 
 function readAbi(relative: string): unknown[] {
-  const file = path.join(ARTIFACTS, relative);
+  // Dependency artifacts (OpenZeppelin) sit beside `contracts/` under artifacts/, not inside.
+  const file = relative.startsWith("@")
+    ? path.join(ROOT, "artifacts", relative)
+    : path.join(ARTIFACTS, relative);
   if (!fs.existsSync(file)) {
     throw new Error(`Missing artifact ${relative}. Run \`npm run build\` first.`);
   }
@@ -42,8 +46,12 @@ function readDeployments(): Record<string, unknown> {
     const manifest = JSON.parse(fs.readFileSync(path.join(DEPLOYMENTS, file), "utf8"));
     out[String(manifest.chainId)] = {
       network: manifest.network,
-      usesMocks: manifest.usesMocks,
+      /** "live" for every deployment: the project has no mock yield sources to point at. */
+      sources: manifest.sources ?? "live",
+      asset: manifest.asset,
+      dex: manifest.dex,
       contracts: manifest.contracts,
+      legs: manifest.legs ?? [],
       config: manifest.config,
     };
   }

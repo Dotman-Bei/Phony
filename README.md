@@ -6,7 +6,7 @@ An ERC-4626 vault that accepts a tokenized real-world asset, routes it across wh
 RWA yield strategies, and compounds the proceeds into the share price. One deposit, one
 position, nothing to claim.
 
-Built for the **BOT Chain Builder Challenge #2**, RWA Applications track (RWA Restaking ·
+Built for the **BOT Chain Builder Challenge, RWA Applications track (RWA Restaking ·
 Product Aggregation · Infrastructure).
 
 ---

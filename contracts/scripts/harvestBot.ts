@@ -1,4 +1,5 @@
 import { ethers, network } from "hardhat";
+import type { BaseContract } from "ethers";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -41,8 +42,8 @@ function loadManifest() {
 }
 
 async function evaluate(
-  vault: Awaited<ReturnType<typeof ethers.getContractAt>>,
-  strategies: Array<Awaited<ReturnType<typeof ethers.getContractAt>>>,
+  vault: BaseContract,
+  strategies: BaseContract[],
   decimals: number,
 ): Promise<HarvestDecision> {
   let pendingYield = 0n;
@@ -117,15 +118,22 @@ async function main() {
   const [keeper] = await ethers.getSigners();
 
   const vault = await ethers.getContractAt("BotVault", c.vault);
-  const asset = await ethers.getContractAt("MockRWAToken", c.asset);
-  const decimals = Number(await asset.decimals());
-  const symbol = await asset.symbol();
 
-  const strategies = await Promise.all([
-    ethers.getContractAt("TBillStrategy", c.tbillStrategy),
-    ethers.getContractAt("CreditStrategy", c.creditStrategy),
-    ethers.getContractAt("LiquidityStrategy", c.liquidityStrategy),
-  ]);
+  // The asset is the chain's own ERC-20 now, so read it through a plain interface rather than
+  // a contract type this repo owns.
+  const asset = new ethers.Contract(
+    manifest.asset?.address ?? c.asset,
+    ["function symbol() view returns (string)", "function decimals() view returns (uint8)"],
+    ethers.provider,
+  );
+  const decimals = Number(await asset.decimals());
+  const symbol: string = await asset.symbol();
+
+  // Adapters come from the manifest's leg list, so adding a venue needs no change here.
+  const legs = (manifest.legs ?? []) as Array<{ key: string; adapter: string }>;
+  const strategies = await Promise.all(
+    legs.map((leg) => ethers.getContractAt("BdexV2LpStrategy", leg.adapter)),
+  );
 
   console.log(`\n  HarvestBot — ${network.name}`);
   console.log(`  ${"─".repeat(58)}`);
