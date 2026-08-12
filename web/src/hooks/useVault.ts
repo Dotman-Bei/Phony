@@ -9,7 +9,7 @@ import {
   dataModeFor,
   deploymentFor,
   routerAbi,
-  rwaTokenAbi,
+  erc20Abi,
   vaultAbi,
   type DataMode,
 } from "@/lib/contracts";
@@ -102,7 +102,7 @@ export function useVaultData(): VaultData {
 
   const vault = { address: vaultAddress ?? undefined, abi: vaultAbi } as const;
   const router = { address: routerAddress ?? undefined, abi: routerAbi } as const;
-  const asset = { address: assetAddress ?? undefined, abi: rwaTokenAbi } as const;
+  const asset = { address: assetAddress ?? undefined, abi: erc20Abi } as const;
 
   const { data, isLoading, refetch } = useReadContracts({
     allowFailure: true,

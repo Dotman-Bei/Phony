@@ -12,13 +12,8 @@ import { formatBps } from "@/lib/format";
 const CONTRACT_ROWS: Array<{ key: string; label: string; note: string }> = [
   { key: "vault", label: "BotVault", note: "ERC-4626 vault, share token brRWA" },
   { key: "router", label: "StrategyRouter", note: "Allocation and rebalancing engine" },
-  { key: "tbillStrategy", label: "TBillStrategy", note: "Treasury bill adapter" },
-  { key: "creditStrategy", label: "CreditStrategy", note: "Private credit adapter" },
-  { key: "liquidityStrategy", label: "LiquidityStrategy", note: "RWA liquidity adapter" },
-  { key: "asset", label: "Asset", note: "The tokenized RWA the vault accepts" },
-  { key: "tbillSource", label: "T-bill yield source", note: "ERC-4626 tokenized T-bill product" },
-  { key: "creditPool", label: "Credit pool", note: "Private credit lending pool" },
-  { key: "liquidityPool", label: "Liquidity pool", note: "Single-sided RWA liquidity zap" },
+  { key: "wbotLp", label: "BdexV2LpStrategy", note: "Single-sided LP adapter for a BDEX V2 pair" },
+  { key: "asset", label: "Asset", note: "USDT — the chain's own token, not one we minted" },
 ];
 
 const RESEARCH = [

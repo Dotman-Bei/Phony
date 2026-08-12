@@ -31,11 +31,11 @@ export default function StrategiesPage() {
         </div>
       </header>
 
-      {vault.mode === "demo" ? (
-        <Notice tone="warn">
-          APYs below are reported by mock yield sources on testnet. The T-bill leg derives
-          its rate from realised share-price growth; the other two report their configured
-          coupon. None of these are market rates.
+      {vault.mode === "live" ? (
+        <Notice tone="info">
+          Every figure below is read from a live BDEX pair: allocation from the router, position
+          value from the pool&apos;s reserves, APY from fees this strategy has actually earned.
+          A new strategy reports 0% until it has a day of history rather than a projection.
         </Notice>
       ) : null}
 

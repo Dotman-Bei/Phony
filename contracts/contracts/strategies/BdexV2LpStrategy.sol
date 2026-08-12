@@ -205,13 +205,22 @@ contract BdexV2LpStrategy is BaseStrategy {
     }
 
     /// @dev Burn the share of LP matching the requested value, then convert the paired side
-    ///      back to asset. Rounds the LP amount up so a rounding-down burn cannot leave the
-    ///      router a wei short of the amount a user asked to withdraw.
+    ///      back to asset.
+    ///
+    ///      The burn is sized against *realisable* value, not the spot mark. Sizing it on the
+    ///      spot mark is the intuitive choice and it under-delivers every time: the proceeds
+    ///      arrive only after the paired half is sold, which pays the 0.3% fee and its own
+    ///      price impact, so a spot-proportional burn always lands a little short of what the
+    ///      router asked for — and the vault, correctly, rejects a withdrawal it cannot fill.
+    ///      Dividing by the exit value instead burns marginally more LP and covers the round
+    ///      trip. It errs generous: this quote assumes selling the whole paired side at once,
+    ///      while a partial exit sells less and therefore suffers less impact, so any excess
+    ///      lands as idle asset that the next withdrawal spends first.
     function _freeFunds(uint256 amount) internal override returns (uint256) {
         uint256 assetBefore = _asset.balanceOf(address(this));
 
         uint256 lpHeld = pair.balanceOf(address(this));
-        uint256 valueHeld = _sourceAssets();
+        uint256 valueHeld = _sourceLiquidity();
 
         if (lpHeld > 0 && valueHeld > 0) {
             uint256 lpToBurn;

@@ -14,6 +14,24 @@ import { Notice } from "./primitives";
 type Tab = "deposit" | "withdraw";
 
 /**
+ * Max on the withdraw side stops just short of the quoted maximum.
+ *
+ * `maxWithdraw` is derived from the live reserves of a real DEX pair, so any trade landing
+ * between the quote and the user's signature moves it. On testnet a request for exactly the
+ * quoted figure was refused by 11 units out of 4.4 million — correct behaviour by the vault, and
+ * a confusing failure for anyone who just pressed Max. 20 bps is far more than a block or two of
+ * drift and still rounds to the same number on screen.
+ *
+ * Deposit needs no haircut: the ceiling there is the user's own wallet balance, which nobody
+ * else can move.
+ */
+const WITHDRAW_MARGIN_BPS = 9_980n;
+
+function maxFor(tab: Tab, ceiling: bigint): bigint {
+  return tab === "withdraw" ? (ceiling * WITHDRAW_MARGIN_BPS) / 10_000n : ceiling;
+}
+
+/**
  * Deposit and withdraw.
  *
  * The panel's job is to make the outcome of a signature predictable before it is signed:
@@ -130,7 +148,7 @@ export function VaultActionPanel({ vault }: { vault: VaultData }) {
             onChange={(event) => setInput(event.target.value.replace(/[^\d.]/g, ""))}
             aria-label={`Amount to ${tab}`}
           />
-          <button type="button" className="max-button" onClick={() => setInput(toInputValue(ceiling, decimals))}>
+          <button type="button" className="max-button" onClick={() => setInput(toInputValue(maxFor(tab, ceiling), decimals))}>
             Max
           </button>
         </span>

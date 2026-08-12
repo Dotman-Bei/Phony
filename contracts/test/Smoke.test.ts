@@ -53,6 +53,24 @@ describe("Fork sanity", () => {
     expect(exitable).to.be.gt(usdt(950));
   });
 
+  it("honours a withdrawal of exactly the maximum it quoted", async () => {
+    const { alice, asset, vault } = await loadFixture(deployPhony);
+
+    await (asset.connect(alice) as any).approve(await vault.getAddress(), usdt(1_000));
+    await vault.connect(alice).deposit(usdt(1_000), alice.address);
+
+    // The regression this pins down: sizing the LP burn on the spot mark rather than on
+    // realisable value under-delivers by the swap fee, so the vault rejected withdrawals of
+    // its own quoted maximum — off by 11 units of 4.4 million on testnet.
+    const quoted = await vault.maxWithdraw(alice.address);
+    expect(quoted).to.be.gt(0n);
+
+    const before = await asset.balanceOf(alice.address);
+    await vault.connect(alice).withdraw(quoted, alice.address, alice.address);
+
+    expect(await asset.balanceOf(alice.address)).to.equal(before + quoted);
+  });
+
   it("earns real trading fees when real volume goes through the pool", async () => {
     const { alice, asset, vault, strategy } = await loadFixture(deployPhony);
 

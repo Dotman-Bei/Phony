@@ -70,10 +70,11 @@ export default function VaultPage() {
         </div>
       </header>
 
-      {vault.mode === "demo" ? (
-        <Notice tone="warn">
-          This deployment routes into mock yield sources. Transactions, share accounting, and
-          NAV are real; the coupons are simulated. Rates shown here are not market rates.
+      {vault.mode === "live" ? (
+        <Notice tone="info">
+          Deposits are the chain&apos;s own USDT and yield is the real trading fees of a live
+          BDEX pair. Nothing here is simulated, which is also why yield only appears when other
+          people actually trade the pair.
         </Notice>
       ) : null}
 
@@ -194,31 +195,6 @@ export default function VaultPage() {
             </div>
           </Panel>
 
-          {vault.mode === "demo" && isConnected ? (
-            <Panel index="05" title="Test tokens" state="Testnet">
-              <div className="panel-body stack-12">
-                <p style={{ fontSize: 13, lineHeight: "21px", color: "var(--muted)" }}>
-                  Claim {vault.assetSymbol} to run the full loop. Rate limited per address.
-                </p>
-                <button
-                  type="button"
-                  className="ghost-action"
-                  onClick={() => actions.faucet()}
-                  disabled={actions.isBusy}
-                >
-                  {actions.isBusy && actions.action === "faucet" ? (
-                    <span className="spinner" aria-hidden="true" />
-                  ) : (
-                    <Droplet size={13} strokeWidth={2} />
-                  )}
-                  Claim {vault.assetSymbol}
-                </button>
-                {actions.error && actions.action === "faucet" ? (
-                  <Notice tone="error">{actions.error}</Notice>
-                ) : null}
-              </div>
-            </Panel>
-          ) : null}
         </div>
       </div>
     </div>

@@ -9,14 +9,14 @@ import { riskClass, riskLabel, type RiskLevel } from "@/lib/strategyMeta";
 /* ------------------------------------------------------------------ mode --- */
 
 /**
- * Mode badge. Carries the same semantic weight as a risk rating: it tells the viewer
- * whether the numbers beside it came from real yield sources or from mocks. Demo and
- * unconfigured never borrow the live colour.
+ * Mode badge. Carries the same semantic weight as a risk rating: it states where the numbers
+ * beside it came from. There is no "demo" state any more — the vault holds the chain's own USDT
+ * and earns a real BDEX pair's fees, so the only other case is a chain with no deployment,
+ * which never borrows the live colour.
  */
 export function ModeBadge({ mode }: { mode: DataMode }) {
   const config = {
     live: { className: "mode-live", label: "Live" },
-    demo: { className: "mode-demo", label: "Demo sources" },
     unconfigured: { className: "mode-unconfigured", label: "Not deployed" },
   }[mode];
 
@@ -24,11 +24,9 @@ export function ModeBadge({ mode }: { mode: DataMode }) {
     <span
       className={`mode-badge ${config.className}`}
       title={
-        mode === "demo"
-          ? "Real transactions and real share accounting on a real chain. Yield comes from mock RWA sources, so these rates are simulated, not market rates."
-          : mode === "live"
-            ? "Connected to production RWA yield sources."
-            : "No Phony deployment on this network."
+        mode === "live"
+          ? "Real asset, real venue: the chain's USDT deployed into a live BDEX pair. Yields are fees actually earned, not projections."
+          : "No Phony deployment on this network."
       }
     >
       {config.label}

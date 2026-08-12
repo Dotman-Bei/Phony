@@ -2,7 +2,7 @@
   "network": "botTestnet",
   "chainId": 968,
   "deployer": "0x9376D9a98b7d0DF949eA0a7065948ccBec33C68b",
-  "timestamp": "2026-08-12T23:33:34.679Z",
+  "timestamp": "2026-08-12T23:42:00.992Z",
   "sources": "live",
   "asset": {
     "address": "0x75edC9335175Fc0552D51D48439F229c10420fe3",
@@ -14,16 +14,16 @@
   },
   "contracts": {
     "asset": "0x75edC9335175Fc0552D51D48439F229c10420fe3",
-    "vault": "0xf6458dF5e74120542E067D2Fa4B4aa7c9C9CBf92",
-    "router": "0x937EBb9b538cc35DB85B5836264260dB25E76399",
-    "wbotLp": "0xb0984D79D7D48e59347119ef19616F7FCB18f19f"
+    "vault": "0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab",
+    "router": "0x2B4f2B65374D62b85fF44d818A2691dd1875e6A4",
+    "wbotLp": "0xb4F64d4dC539BaE035F8d90032D81566651AFc3D"
   },
   "legs": [
     {
       "key": "wbotLp",
       "name": "BDEX V2 - USDT/WBOT",
       "risk": "medium",
-      "adapter": "0xb0984D79D7D48e59347119ef19616F7FCB18f19f",
+      "adapter": "0xb4F64d4dC539BaE035F8d90032D81566651AFc3D",
       "pair": "0xD3EC267707BA234583645E75CE283Cf679dd94Fa",
       "pairedToken": "0xD5452816194a3784dBa983426cCe7c122F4abd30",
       "pairedSymbol": "WBOT",

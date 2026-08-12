@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useAccount, useChainId, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { maxUint256 } from "viem";
 
-import { addressFor, rwaTokenAbi, vaultAbi } from "@/lib/contracts";
+import { addressFor, erc20Abi, vaultAbi } from "@/lib/contracts";
 
 /**
- * Write path for the vault: approve, deposit, withdraw, harvest, faucet.
+ * Write path for the vault: approve, deposit, withdraw, harvest.
  *
  * Every action funnels through one state machine so the UI has a single, honest notion of
  * "what is happening right now". `phase` distinguishes waiting-on-the-wallet from
@@ -16,7 +16,7 @@ import { addressFor, rwaTokenAbi, vaultAbi } from "@/lib/contracts";
  */
 
 export type TxPhase = "idle" | "signing" | "pending" | "success" | "error";
-export type TxAction = "approve" | "deposit" | "withdraw" | "redeem" | "harvest" | "faucet" | null;
+export type TxAction = "approve" | "deposit" | "withdraw" | "redeem" | "harvest" | null;
 
 export interface VaultActions {
   phase: TxPhase;
@@ -30,7 +30,6 @@ export interface VaultActions {
   withdraw: (assets: bigint) => Promise<void>;
   redeem: (shares: bigint) => Promise<void>;
   harvest: () => Promise<void>;
-  faucet: () => Promise<void>;
   reset: () => void;
 }
 
@@ -108,7 +107,7 @@ export function useVaultActions(onConfirmed?: () => void): VaultActions {
       await run("approve", () =>
         writeContractAsync({
           address: assetAddress,
-          abi: rwaTokenAbi,
+          abi: erc20Abi,
           functionName: "approve",
           // Default to an unlimited allowance so depositing is one signature, not two on
           // every visit. A bounded amount can be passed for users who prefer it.
@@ -171,12 +170,6 @@ export function useVaultActions(onConfirmed?: () => void): VaultActions {
     );
   }, [vaultAddress, run, writeContractAsync]);
 
-  const faucet = useCallback(async () => {
-    if (!assetAddress) return;
-    await run("faucet", () =>
-      writeContractAsync({ address: assetAddress, abi: rwaTokenAbi, functionName: "faucet" }),
-    );
-  }, [assetAddress, run, writeContractAsync]);
 
   const reset = useCallback(() => {
     setPhase("idle");
@@ -196,7 +189,6 @@ export function useVaultActions(onConfirmed?: () => void): VaultActions {
     withdraw,
     redeem,
     harvest,
-    faucet,
     reset,
   };
 }
