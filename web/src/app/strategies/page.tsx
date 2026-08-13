@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { MetricGrid, ModeBadge, Notice, RiskPill } from "@/components/primitives";
 import { useVaultData } from "@/hooks/useVault";
 import { explorerUrlFor } from "@/lib/chains";
+import { legsFor } from "@/lib/contracts";
 import { RESERVE_META, riskClass } from "@/lib/strategyMeta";
 import { formatBps, formatToken, shortenAddress } from "@/lib/format";
 
@@ -13,6 +14,13 @@ export default function StrategiesPage() {
   const chainId = useChainId();
   const vault = useVaultData();
   const decimals = vault.assetDecimals;
+
+  // The venue behind each adapter, from the deployment manifest. Showing the pair matters more
+  // than showing the adapter: the adapter is ours, the pair is a third party's contract holding
+  // other people's liquidity, and that is the claim a reader should be able to check.
+  const legByAdapter = new Map(
+    legsFor(chainId).map((leg) => [leg.adapter.toLowerCase(), leg]),
+  );
 
   return (
     <div className="wide section stack-24">
@@ -147,6 +155,33 @@ export default function StrategiesPage() {
                       </a>
                     </dd>
                   </div>
+
+                  {legByAdapter.get(strategy.address.toLowerCase()) ? (
+                    <div className="quote-row">
+                      <dt>Liquidity pool</dt>
+                      <dd>
+                        <a
+                          className="text-link"
+                          href={explorerUrlFor(
+                            chainId,
+                            "address",
+                            legByAdapter.get(strategy.address.toLowerCase())!.pair,
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                        >
+                          {vault.assetSymbol}/
+                          {legByAdapter.get(strategy.address.toLowerCase())!.pairedSymbol}{" "}
+                          {shortenAddress(
+                            legByAdapter.get(strategy.address.toLowerCase())!.pair,
+                            4,
+                          )}
+                          <ExternalLink size={10} strokeWidth={2.5} />
+                        </a>
+                      </dd>
+                    </div>
+                  ) : null}
                 </dl>
               </div>
             </article>
