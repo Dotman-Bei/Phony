@@ -22,8 +22,10 @@ const EXPORTS: Array<{ key: string; artifact: string }> = [
   { key: "bdexLpStrategy", artifact: "strategies/BdexV2LpStrategy.sol/BdexV2LpStrategy.json" },
   { key: "bdexPair", artifact: "interfaces/IBdexV2.sol/IBdexV2Pair.json" },
   // The asset is now the chain's real USDT, so the frontend needs a plain ERC-20 surface for
-  // balance and approval reads. There is no bespoke token contract to export any more.
-  { key: "erc20", artifact: "@openzeppelin/contracts/token/ERC20/IERC20.sol/IERC20.json" },
+  // balance, approval, symbol and decimals reads. It must be IERC20*Metadata*: plain IERC20
+  // omits symbol() and decimals(), and a UI that cannot read decimals scales every number on
+  // screen by the wrong power of ten.
+  { key: "erc20", artifact: "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json" },
 ];
 
 function readAbi(relative: string): unknown[] {

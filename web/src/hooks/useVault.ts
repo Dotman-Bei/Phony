@@ -158,7 +158,10 @@ export function useVaultData(): VaultData {
 
     const totalAssets = read<bigint>(0, 0n);
     const totalSupply = read<bigint>(1, 0n);
-    const assetDecimals = Number(read<number>(17, 18));
+    // Fall back to the deployment manifest, never to a guess. An 18 here against a 6-decimal
+    // USDT renders a 3 USDT balance as 0.0000 and quotes shares in the trillions, which is
+    // exactly what a missing decimals() in the ABI once produced.
+    const assetDecimals = Number(read<number>(17, deployment?.asset?.decimals ?? 18));
 
     const info = read<
       readonly [
@@ -223,7 +226,7 @@ export function useVaultData(): VaultData {
       routerAddress,
       assetAddress,
 
-      assetSymbol: read<string>(16, "RWA"),
+      assetSymbol: read<string>(16, deployment?.asset?.symbol ?? "RWA"),
       assetDecimals,
       shareSymbol: read<string>(11, "brRWA"),
 
@@ -258,6 +261,7 @@ export function useVaultData(): VaultData {
     data,
     userData,
     chainId,
+    deployment,
     configured,
     isLoading,
     vaultAddress,
