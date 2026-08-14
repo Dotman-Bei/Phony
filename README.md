@@ -255,10 +255,30 @@ against, which is the point — but it also means the tests exercise things a mo
 | Real drawdown | `crashPairedToken` dumps WBOT into the pool so its price genuinely falls. The old mock had a `setLpValueBps` setter for this. |
 | Real funding | Test USDT comes from impersonating a large holder. There is no mint function available. |
 
-`Smoke.test.ts` covers the fork itself, deposit into live liquidity, the exit-quote regression, and
-fee accrual. Coverage is **materially thinner than the mock-based suite it replaced** — that suite
-had 79 tests and this one has 5. Rebuilding the vault- and router-level assertions on the fork
-fixture is the largest piece of outstanding work on this project.
+`Smoke.test.ts` covers the fork itself, deposit into live liquidity, the exit-quote regression,
+fee accrual, and the realised-APY rule. Contract coverage is still **thinner than the mock-based
+suite it replaced** — that suite had 79 tests and this one has 6. Rebuilding the vault- and
+router-level assertions on the fork fixture is the largest piece of outstanding work.
+
+### Frontend — build.md §7.3
+
+```bash
+cd web
+npm test          # vitest, 50 tests
+```
+
+Vitest + Testing Library in jsdom, covering the four areas the spec names:
+
+| Suite | Covers |
+|---|---|
+| `wallet-connection` | chain definitions (677/968 and their real hosts), connect, disconnect, rejecting an unsupported chain, per-chain deployment lookup |
+| `deposit-flow` | approve-then-deposit vs deposit-only, quotes before signing, refusal above the wallet balance, paused vault, wallet rejection, signing vs pending, and the withdraw side bounded by exitable liquidity |
+| `share-price` | truncation of balances, rounding of derived figures, 6-decimal correctness, quote round-trips |
+| `chart-rendering` | allocation rows including the idle reserve, and empty states that distinguish "no harvest yet" from "the RPC refused the log range" |
+
+The write path is stubbed there on purpose: whether the chain *accepts* a call is settled in
+`contracts/test` against a fork of the real BDEX, which is the only place that answer means
+anything. What the frontend suite pins is the decision made before a signature is requested.
 
 ---
 
