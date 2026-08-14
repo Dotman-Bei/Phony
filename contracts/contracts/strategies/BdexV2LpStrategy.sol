@@ -117,24 +117,30 @@ contract BdexV2LpStrategy is BaseStrategy {
     }
 
     /// @inheritdoc IStrategyAdapter
-    /// @dev Realised, not advertised. Annualises the fees this position has actually earned
-    ///      over the time it has been open, so a fresh strategy reports 0 rather than a
-    ///      marketing number. Uses current principal as the denominator, which slightly
-    ///      understates APY for a position that grew over the window.
+    /// @dev Realised only, and deliberately so.
+    ///
+    ///      An earlier version added unrealised gains — `totalAssets() - totalDeposited` — to
+    ///      the numerator, on the reasoning that V2 fees accrue into the reserves and are
+    ///      therefore real before they are harvested. On a live pool that is badly wrong. The
+    ///      unrealised figure is dominated by price movement, not fees: it includes impermanent
+    ///      loss and, worse, the mark-to-spot artifact of the strategy's own entry, since the
+    ///      paired tokens were bought along the curve and are then marked at the post-swap
+    ///      price. Annualising that noise over a short window produced a headline **125.8% APY**
+    ///      on testnet from 0.0236 USDT of paper gain over 40 hours — a number no honest vault
+    ///      should display.
+    ///
+    ///      So this reports what has actually been harvested and nothing else. The cost is that
+    ///      a strategy reads 0% until its first non-zero harvest, which on a quiet pair may be a
+    ///      while. That is the correct answer to "what has this earned": nothing yet.
     function estimatedAPY() external view override returns (uint256) {
-        if (firstDepositTime == 0 || totalDeposited == 0) return 0;
+        if (firstDepositTime == 0 || totalDeposited == 0 || totalHarvested == 0) return 0;
 
         uint256 elapsed = block.timestamp - firstDepositTime;
         // Annualising a few minutes of fees produces a meaningless number; say nothing until
         // there is a day of history behind it.
         if (elapsed < 1 days) return 0;
 
-        uint256 assets = totalAssets();
-        uint256 unrealised = assets > totalDeposited ? assets - totalDeposited : 0;
-        uint256 gains = totalHarvested + unrealised;
-        if (gains == 0) return 0;
-
-        return (gains * 365 days * 10_000) / (totalDeposited * elapsed);
+        return (totalHarvested * 365 days * 10_000) / (totalDeposited * elapsed);
     }
 
     /// @notice LP tokens held by this strategy.

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { deployPhony, generateTradingFees, usdt } from "./fixtures";
 
@@ -82,5 +82,24 @@ describe("Fork sanity", () => {
     const after = await strategy.totalAssets();
 
     expect(after).to.be.gt(before, "LP position did not grow after real swap volume");
+  });
+});
+
+describe("Reported APY", () => {
+  it("stays at zero while the only gain is unrealised mark-to-market", async () => {
+    const { alice, asset, vault, strategy } = await loadFixture(deployPhony);
+
+    await (asset.connect(alice) as any).approve(await vault.getAddress(), usdt(1_000));
+    await vault.connect(alice).deposit(usdt(1_000), alice.address);
+
+    // Entry marks the LP at the post-swap spot price, which shows a paper gain immediately.
+    expect(await strategy.totalAssets()).to.be.gt(await strategy.totalDeposited());
+
+    // 40 hours: past the 24h floor, so the only thing stopping a number is the realised rule.
+    await time.increase(40 * 60 * 60);
+
+    // The regression: annualising that paper gain reported 125.8% APY on testnet.
+    expect(await strategy.estimatedAPY()).to.equal(0n);
+    expect(await strategy.totalHarvested()).to.equal(0n);
   });
 });
