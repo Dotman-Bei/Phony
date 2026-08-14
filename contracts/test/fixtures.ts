@@ -24,6 +24,21 @@ export const ADDRESSES = {
   dexRouter: "0xD6425a02f0845B8D99e349C34D2E7A576E177345",
   /** Holds ~1e23 test USDT; the suite's source of funds. */
   whale: "0x3f14Aee7837002Be71F6567c01F55d86468F6a9c",
+  /**
+   * A second live USDT pair, so the router can be tested with more than one leg.
+   *
+   * Weights, per-strategy caps, proportional withdrawal and rebalancing are all meaningless
+   * against a single strategy, and this project has no mock adapter to stand a second one up
+   * with.
+   *
+   * USDT/USDT4, ~1.4k USDT deep. The deeper USDT/Money pair was the obvious pick and is
+   * unusable: Money quotes consistently with a 0.3% fee but under-delivers on transfer, so it
+   * is fee-on-transfer, and `addLiquidity` reverts with INSUFFICIENT_A_AMOUNT because the
+   * tokens actually received no longer match the ratio the swap quoted. The adapter failing
+   * closed there is the correct outcome — it is not built for such tokens and does not pretend
+   * to be — but it makes that pair no good as a fixture.
+   */
+  secondPair: "0x5d5cfEa413598924BF8fAf105375e856ADA99435",
 } as const;
 
 export const ERC20_ABI = [
@@ -143,6 +158,38 @@ export async function deployPhony() {
 }
 
 /**
+ * Deploys a second adapter on another live USDT pair and registers it.
+ *
+ * Resolves the paired token from the pair itself rather than hardcoding it, which also means the
+ * adapter's own constructor check — that the factory really registered this pair for these two
+ * tokens — is being exercised against a pair nobody wrote this code for.
+ */
+export async function addSecondLeg(
+  router: Awaited<ReturnType<typeof deployPhony>>["router"],
+  curator: Awaited<ReturnType<typeof deployPhony>>["curator"],
+  weightBps = 2_000n,
+  cap = usdt(200),
+) {
+  const pair = new ethers.Contract(ADDRESSES.secondPair, PAIR_ABI, ethers.provider);
+  const [token0, token1] = [await pair.token0(), await pair.token1()];
+  const paired = token0.toLowerCase() === ADDRESSES.usdt.toLowerCase() ? token1 : token0;
+
+  const strategy = await ethers.deployContract("BdexV2LpStrategy", [
+    ADDRESSES.usdt,
+    await router.getAddress(),
+    ADDRESSES.dexRouter,
+    ADDRESSES.secondPair,
+    100n,
+    "BDEX V2 - second venue",
+    curator.address,
+  ]);
+
+  await router.connect(curator).addStrategy(await strategy.getAddress(), weightBps, cap);
+
+  return { strategy, pairedToken: paired, pair };
+}
+
+/**
  * Produce real trading fees by round-tripping volume through the pool.
  *
  * Each swap pays 0.3% into the reserves, which is exactly how a V2 LP earns. Trading both
@@ -186,39 +233,29 @@ export async function generateTradingFees(volume = usdt(2_000), rounds = 6) {
 }
 
 /**
- * Crash the paired token by dumping a large amount of it into the pool.
+ * Crash the paired token by selling a large amount of it into the pool.
  *
- * This is a genuine adverse price move, not a flag: WBOT gets cheaper in USDT terms, and a
- * position holding WBOT is worth less. It is how the drawdown assertions get their drawdown
- * now that no contract has a `setLpValueBps` to call.
+ * The WBOT has to come from somewhere other than this pair, or buying it would push the price up
+ * by as much as selling pushes it down — which is what the first version of this helper did, and
+ * why it produced trading fees instead of a drawdown. WBOT is a WETH9-style wrapper, so native BOT
+ * can be wrapped directly and dumped, which moves the price for real.
  */
-export async function crashPairedToken(usdtToSpend = usdt(3_000)) {
+export async function crashPairedToken(wbotToDump = ethers.parseEther("400")) {
   const [, , , , , dumper] = await ethers.getSigners();
 
-  const asset = new ethers.Contract(ADDRESSES.usdt, ERC20_ABI, ethers.provider);
-  const wbot = new ethers.Contract(ADDRESSES.wbot, ERC20_ABI, ethers.provider);
+  const wbot = new ethers.Contract(
+    ADDRESSES.wbot,
+    [...ERC20_ABI, "function deposit() payable"],
+    dumper,
+  );
   const dexRouter = new ethers.Contract(ADDRESSES.dexRouter, DEX_ROUTER_ABI, ethers.provider);
 
-  await impersonateAccount(ADDRESSES.whale);
-  await setBalance(ADDRESSES.whale, ethers.parseEther("100"));
-  const whale = await ethers.getSigner(ADDRESSES.whale);
-  await (asset.connect(whale) as any).transfer(dumper.address, usdtToSpend);
+  await setBalance(dumper.address, wbotToDump + ethers.parseEther("10"));
+  await (await wbot.deposit({ value: wbotToDump })).wait();
 
-  // Buy WBOT, then sell strictly more than was bought so the pool ends up long WBOT and the
-  // price ends below where it started.
-  await (asset.connect(dumper) as any).approve(ADDRESSES.dexRouter, usdtToSpend);
+  await (await wbot.approve(ADDRESSES.dexRouter, wbotToDump)).wait();
   await (dexRouter.connect(dumper) as any).swapExactTokensForTokens(
-    usdtToSpend,
-    0,
-    [ADDRESSES.usdt, ADDRESSES.wbot],
-    dumper.address,
-    ethers.MaxUint256,
-  );
-
-  const wbotHeld = await wbot.balanceOf(dumper.address);
-  await (wbot.connect(dumper) as any).approve(ADDRESSES.dexRouter, wbotHeld);
-  await (dexRouter.connect(dumper) as any).swapExactTokensForTokens(
-    wbotHeld,
+    wbotToDump,
     0,
     [ADDRESSES.wbot, ADDRESSES.usdt],
     dumper.address,

@@ -115,7 +115,7 @@ abstract contract BaseStrategy is IStrategyAdapter, Ownable, ReentrancyGuard {
     ///      when nothing accrued, so a keeper sweeping N strategies is never blocked by the
     ///      one that has not ticked yet.
     function harvest() external override onlyRouter nonReentrant returns (uint256) {
-        uint256 assets = totalAssets();
+        uint256 assets = _harvestBasis();
         if (assets <= totalDeposited) {
             lastHarvestTime = block.timestamp;
             return 0;
@@ -221,5 +221,19 @@ abstract contract BaseStrategy is IStrategyAdapter, Ownable, ReentrancyGuard {
     ///      mechanism (a credit pool's interest ledger, an LP fee accrual) override it.
     function _realiseYield(uint256 pending) internal virtual returns (uint256) {
         return _freeFunds(pending);
+    }
+
+    /// @dev The figure `harvest()` measures yield against. Defaults to the full mark, which is
+    ///      right for a source whose mark is what it would pay out.
+    ///
+    ///      A source whose mark can legitimately exceed what it could realise must override this
+    ///      and report the realisable figure instead, because the difference is not income. An
+    ///      AMM position is the case in point: entering moves the pool's price, and marking the
+    ///      position at that post-entry price shows an instant paper gain. Measured against the
+    ///      full mark, a harvest one block after a deposit booked 2.63 USDT of "yield" on a 500
+    ///      USDT deposit and paid a performance fee on it — a fee on price impact, taken from
+    ///      capital, dressed as a return.
+    function _harvestBasis() internal view virtual returns (uint256) {
+        return totalAssets();
     }
 }

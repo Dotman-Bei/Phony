@@ -321,6 +321,19 @@ contract BdexV2LpStrategy is BaseStrategy {
                                 INTERNAL
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Yield is measured against what the position could actually be turned into, not
+    ///      against its spot mark. The two differ by the round trip through the pool, and that
+    ///      difference is never income: it is mostly this strategy's own price impact, which
+    ///      spot marking hands back as an instant paper gain. Harvesting it would pay a
+    ///      performance fee on principal.
+    ///
+    ///      The practical effect is that real trading fees have to clear the round-trip cost
+    ///      before anything is booked. That is the correct threshold — below it, unwinding to
+    ///      collect would leave the vault worse off than not bothering.
+    function _harvestBasis() internal view override returns (uint256) {
+        return _sourceLiquidity() + _asset.balanceOf(address(this));
+    }
+
     function _reserves() internal view returns (uint256 reserveAsset, uint256 reservePaired) {
         (uint112 r0, uint112 r1,) = pair.getReserves();
         return assetIsToken0 ? (uint256(r0), uint256(r1)) : (uint256(r1), uint256(r0));

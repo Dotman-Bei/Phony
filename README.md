@@ -262,10 +262,19 @@ against, which is the point — but it also means the tests exercise things a mo
 | Real drawdown | `crashPairedToken` dumps WBOT into the pool so its price genuinely falls. The old mock had a `setLpValueBps` setter for this. |
 | Real funding | Test USDT comes from impersonating a large holder. There is no mint function available. |
 
-`Smoke.test.ts` covers the fork itself, deposit into live liquidity, the exit-quote regression,
-fee accrual, and the realised-APY rule. Contract coverage is still **thinner than the mock-based
-suite it replaced** — that suite had 79 tests and this one has 6. Rebuilding the vault- and
-router-level assertions on the fork fixture is the largest piece of outstanding work.
+**68 tests**, all against live BDEX liquidity:
+
+| Suite | Covers |
+|---|---|
+| `BotVault` | ERC-4626 conformance, weighted routing, the reserve buffer, liquidity-aware maxima, harvest and fees, pause, curator controls, multi-user share accounting |
+| `StrategyRouter` | whitelisting, weight ceilings, wrong-asset rejection, caps, proportional withdrawal across two venues, retirement, rebalancing, packed views |
+| `Integration` | the full loop, NAV conservation at every step, a real drawdown, the curator-cannot-drain sequence, emergency exit |
+| `Smoke` | the fork itself, the exit-quote regression, fee accrual, the realised-APY rule |
+
+The router tests need two strategies to mean anything, and there is no mock adapter to supply one,
+so the second leg is **another live pair** (USDT/USDT4). One consequence is worth stating: a
+rebalance moves capital through two real pools and pays their fees, so NAV falls slightly every
+time. A mock would have shown that as free.
 
 ### Frontend — build.md §7.3
 

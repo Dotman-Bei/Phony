@@ -59,6 +59,9 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
     event WithdrawRouted(uint256 requested, uint256 withdrawn);
     event StrategyHarvested(uint256 indexed strategyId, address indexed adapter, uint256 amount);
     event HarvestCompleted(uint256 totalHarvested, uint256 timestamp);
+    /// @notice A strategy declined a deposit and was passed over; the capital stayed idle.
+    event StrategySkipped(uint256 indexed strategyId, address indexed adapter, uint256 amount);
+
     event Rebalanced(uint256 totalAssets, uint256 timestamp);
 
     error ZeroAddress();
@@ -195,10 +198,19 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
             }
 
             IERC20(asset).forceApprove(s.adapter, target);
-            adapter.deposit(target);
-            IERC20(asset).forceApprove(s.adapter, 0);
 
-            deployed += target;
+            // A strategy that will not take the money must not take the deposit down with it.
+            // The case that found this: an adapter in emergency exit reverts every `deposit`,
+            // which made a single switched-off strategy revert *every user's* deposit into the
+            // vault. Skipping leaves the capital idle — earning nothing, fully withdrawable, and
+            // redeployable by the curator once the strategy is healthy or retired.
+            try adapter.deposit(target) {
+                deployed += target;
+            } catch {
+                emit StrategySkipped(i, s.adapter, target);
+            }
+
+            IERC20(asset).forceApprove(s.adapter, 0);
         }
 
         // Rounding dust and capped-out allocations go straight back — the router is a
@@ -302,7 +314,12 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
     function rebalance() external onlyOwner nonReentrant {
         uint256 count = strategyCount;
         uint256 total = getTotalStrategyAssets();
-        if (total == 0 || totalAllocationBps == 0) return;
+        if (total == 0) return;
+
+        // Deliberately *not* an early return when nothing is allocated. A curator who
+        // deactivates every strategy and rebalances is asking for the capital back, and bailing
+        // out here left it sitting in the strategy that was just switched off.
+        uint256 allocated = totalAllocationBps;
 
         // Pass 1 — withdraw the excess from anything above its target weight.
         for (uint256 i = 0; i < count; ++i) {
@@ -315,8 +332,11 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
 
             // Targets are expressed against deployed capital, so weights are normalised by
             // `totalAllocationBps` rather than by 10 000 — the unallocated remainder is the
-            // vault's buffer and was never the router's to hold.
-            uint256 target = s.active ? (total * s.allocationBps) / totalAllocationBps : 0;
+            // vault's buffer and was never the router's to hold. With nothing allocated every
+            // target is zero, which also keeps the division below out of reach of a zero
+            // denominator.
+            uint256 target =
+                (s.active && allocated > 0) ? (total * s.allocationBps) / allocated : 0;
             if (held > target) adapter.withdraw(held - target);
         }
 
@@ -326,14 +346,16 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
             return;
         }
 
-        // Pass 2 — top up anything below target with what was freed.
-        for (uint256 i = 0; i < count && freed > 0; ++i) {
+        // Pass 2 — top up anything below target with what was freed. Unreachable while nothing
+        // is allocated, since a strategy needs a non-zero weight to be a candidate, so the
+        // freed capital falls through to the vault below.
+        for (uint256 i = 0; i < count && freed > 0 && allocated > 0; ++i) {
             Strategy memory s = strategies[i];
             if (s.adapter == address(0) || !s.active || s.allocationBps == 0) continue;
 
             IStrategyAdapter adapter = IStrategyAdapter(s.adapter);
             uint256 held = adapter.totalAssets();
-            uint256 target = (total * s.allocationBps) / totalAllocationBps;
+            uint256 target = (total * s.allocationBps) / allocated;
             if (held >= target) continue;
 
             uint256 topUp = target - held;
