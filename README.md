@@ -137,7 +137,7 @@ on chain against real BDEX liquidity.
 |---|---|
 | **BotVault** (brRWA) | [`0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab`](https://scan.bohr.life/address/0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab#code) |
 | **StrategyRouter** | [`0x2B4f2B65374D62b85fF44d818A2691dd1875e6A4`](https://scan.bohr.life/address/0x2B4f2B65374D62b85fF44d818A2691dd1875e6A4#code) |
-| **BdexV2LpStrategy** | [`0xb4F64d4dC539BaE035F8d90032D81566651AFc3D`](https://scan.bohr.life/address/0xb4F64d4dC539BaE035F8d90032D81566651AFc3D#code) |
+| **BdexV2LpStrategy** | [`0xC29C93e7fFFa6Bdb2404Eacec145A3e3e2A574be`](https://scan.bohr.life/address/0xC29C93e7fFFa6Bdb2404Eacec145A3e3e2A574be#code) |
 
 Contracts it uses but does not own:
 
@@ -152,6 +152,13 @@ Contracts it uses but does not own:
 only. Caps are sized against pool depth: the pair holds ~6,500 USDT, so the strategy is capped at
 500 USDT and the vault at 1,000. A position that is a large fraction of the pool pays its own
 price impact twice and makes NAV a function of its own size rather than of the market.
+
+The adapter has been rotated once, in place: `scripts/rotateStrategy.ts` deploys a replacement,
+retires the old one — which unwinds it and returns the capital to the vault — registers the new one
+at the same weight, and redeploys the idle funds. The vault and router keep their addresses and no
+shares are minted or burned, so every published link and every depositor's position survives it.
+The cost is the round trip through the pool: 0.0102 USDT of NAV on a 4.07 USDT vault, which is the
+0.3% swap fee on the paired half paid twice.
 
 Manifest: [`contracts/deployments/botTestnet.json`](contracts/deployments/botTestnet.json).
 
