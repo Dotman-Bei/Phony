@@ -15,15 +15,15 @@
   "contracts": {
     "asset": "0x75edC9335175Fc0552D51D48439F229c10420fe3",
     "vault": "0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab",
-    "router": "0x2B4f2B65374D62b85fF44d818A2691dd1875e6A4",
-    "wbotLp": "0xC29C93e7fFFa6Bdb2404Eacec145A3e3e2A574be"
+    "router": "0x624F37AD9b7Df06B980dA17a01d22CD0924D26F3",
+    "wbotLp": "0xfc06f27f2b63FE97916d16783E094aE77823534B"
   },
   "legs": [
     {
       "key": "wbotLp",
       "name": "BDEX V2 - USDT/WBOT",
       "risk": "medium",
-      "adapter": "0xC29C93e7fFFa6Bdb2404Eacec145A3e3e2A574be",
+      "adapter": "0xfc06f27f2b63FE97916d16783E094aE77823534B",
       "pair": "0xD3EC267707BA234583645E75CE283Cf679dd94Fa",
       "pairedToken": "0xD5452816194a3784dBa983426cCe7c122F4abd30",
       "pairedSymbol": "WBOT",
@@ -39,5 +39,6 @@
     "depositCap": "1000",
     "reserveBufferBps": "4000"
   },
-  "rotatedAt": "2026-08-14T16:54:32.694Z"
+  "rotatedAt": "2026-08-14T16:54:32.694Z",
+  "migratedAt": "2026-08-14T17:34:36.858Z"
 }
