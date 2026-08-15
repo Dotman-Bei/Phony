@@ -1,11 +1,12 @@
 "use client";
 
 import { useAccount, useChainId } from "wagmi";
-import { Droplet, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import { AllocationView } from "@/components/AllocationView";
 import { VaultActionPanel } from "@/components/VaultActionPanel";
 import { MetricGrid, ModeBadge, Notice, Panel } from "@/components/primitives";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { useVaultData } from "@/hooks/useVault";
 import { useVaultActions } from "@/hooks/useVaultActions";
 import { deploymentFor } from "@/lib/contracts";
@@ -59,14 +60,15 @@ export default function VaultPage() {
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
           <ModeBadge mode={vault.mode} />
-          <a
-            className="ghost-action"
-            href={explorerUrlFor(chainId, "address", vault.vaultAddress ?? "")}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Explorer
-          </a>
+          <LiquidButton asChild size="sm">
+            <a
+              href={explorerUrlFor(chainId, "address", vault.vaultAddress ?? "")}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Explorer
+            </a>
+          </LiquidButton>
         </div>
       </header>
 
@@ -113,9 +115,9 @@ export default function VaultPage() {
             index="02"
             title="Compounding"
             action={
-              <button
+              <LiquidButton
                 type="button"
-                className="ghost-action"
+                size="sm"
                 onClick={() => actions.harvest()}
                 disabled={actions.isBusy || vault.paused}
                 title="Harvest is permissionless. The keeper runs it on a schedule; anyone may trigger it."
@@ -126,7 +128,7 @@ export default function VaultPage() {
                   <RefreshCw size={13} strokeWidth={2} />
                 )}
                 Harvest now
-              </button>
+              </LiquidButton>
             }
           >
             <div className="metric-grid metric-grid--3 metric-grid--flush">

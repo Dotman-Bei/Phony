@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
@@ -97,7 +97,17 @@ export function LiquidButton({
         style={{ backdropFilter: `url("#${GLASS_FILTER_ID}")` }}
       />
 
-      <span className="pointer-events-none z-10 inline-flex items-center gap-2">{children}</span>
+      {/* `asChild` hands the root over to the caller's element — a Link, usually — and Radix's
+          Slot accepts exactly one child. This component has three, so the content is marked
+          Slottable: the slotted element becomes the root and the rim and refraction spans above
+          become its children. Without this, every asChild call site fails the build with
+          "Slot failed to slot onto its children". Layout still works because the flex and gap
+          live on the root class, not on this wrapper. */}
+      {asChild ? (
+        <Slottable>{children}</Slottable>
+      ) : (
+        <span className="pointer-events-none z-10 inline-flex items-center gap-2">{children}</span>
+      )}
     </Comp>
   );
 }

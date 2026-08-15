@@ -342,85 +342,6 @@ main {
   justify-self: end;
 }
 
-/* ------------------------------------------------------------- buttons ---- */
-
-/* The radial sits at 50% 215% -- below the button, lighting its bottom edge.
-   The page's one-light-source rule, applied at component scale. Nothing moves
-   on hover; the light brightens and the border warms toward violet. */
-.nav-action,
-.hero-action,
-.ghost-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 20px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background:
-    radial-gradient(107.5% 107.5% at 50% 215%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 100%),
-    var(--fill-2);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.14px;
-  transition: background 0.18s, border-color 0.18s, color 0.18s;
-}
-
-.nav-action:hover,
-.hero-action:hover,
-.ghost-action:hover,
-.nav-action:focus-visible,
-.hero-action:focus-visible,
-.ghost-action:focus-visible {
-  background:
-    radial-gradient(107.5% 107.5% at 50% 215%, rgba(255, 255, 255, 0.3) 0%, transparent 100%),
-    var(--fill-3);
-  border-color: rgba(186, 179, 255, 0.35);
-}
-
-.hero-action {
-  min-height: 50px;
-  padding: 12px 26px;
-}
-
-/* Exactly one solid object in the whole product. On a page where every other
-   surface is translucent, opacity itself becomes the emphasis mechanism. */
-.primary-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 50px;
-  padding: 12px 26px;
-  border: 1px solid #f9f8fc;
-  border-radius: 999px;
-  background: #f9f8fc;
-  color: #0a0118;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  transition: background 0.18s, border-color 0.18s, opacity 0.18s;
-}
-
-.primary-action:hover:not(:disabled),
-.primary-action:focus-visible:not(:disabled) {
-  background: #ffffff;
-  border-color: #ffffff;
-}
-
-.primary-action:disabled {
-  background: var(--fill-2);
-  border-color: var(--line);
-  color: var(--faint);
-}
-
-.primary-action--block {
-  width: 100%;
-}
-
 .icon-button {
   display: inline-grid;
   place-items: center;
@@ -910,25 +831,6 @@ main {
 .amount-row .control {
   flex: 1;
   min-width: 0;
-}
-
-.max-button {
-  padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--fill-2);
-  color: var(--text-secondary);
-  font: 600 10px/1 var(--mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.max-button:hover,
-.max-button:focus-visible {
-  background: var(--fill-3);
-  border-color: rgba(186, 179, 255, 0.35);
-  color: var(--text);
 }
 
 .tabs {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { HeroProduct } from "@/components/HeroProduct";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 
 const MECHANICS = [
   {
@@ -76,12 +77,14 @@ export default function LandingPage() {
             </p>
 
             <div className="hero-actions">
-              <Link href="/vault" className="primary-action">
-                Open the vault
-              </Link>
-              <Link href="/docs" className="hero-action">
-                Read the architecture <ArrowRight size={14} strokeWidth={2} />
-              </Link>
+              <LiquidButton asChild variant="foreground" size="xl">
+                <Link href="/vault">Open the vault</Link>
+              </LiquidButton>
+              <LiquidButton asChild size="xl">
+                <Link href="/docs">
+                  Read the architecture <ArrowRight size={14} strokeWidth={2} />
+                </Link>
+              </LiquidButton>
             </div>
           </div>
 
@@ -175,12 +178,12 @@ export default function LandingPage() {
               price do the work.
             </p>
             <div className="hero-actions">
-              <Link href="/vault" className="primary-action">
-                Deposit & restake
-              </Link>
-              <Link href="/strategies" className="hero-action">
-                Inspect the strategies
-              </Link>
+              <LiquidButton asChild variant="foreground" size="xl">
+                <Link href="/vault">Deposit &amp; restake</Link>
+              </LiquidButton>
+              <LiquidButton asChild size="xl">
+                <Link href="/strategies">Inspect the strategies</Link>
+              </LiquidButton>
             </div>
           </div>
         </div>

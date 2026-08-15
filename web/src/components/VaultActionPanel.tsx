@@ -9,6 +9,7 @@ import { useVaultActions } from "@/hooks/useVaultActions";
 import type { VaultData } from "@/hooks/useVault";
 import { explorerUrlFor } from "@/lib/chains";
 import { formatSharePrice, formatToken, parseAmount, toInputValue } from "@/lib/format";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { Notice } from "./primitives";
 
 type Tab = "deposit" | "withdraw";
@@ -148,9 +149,13 @@ export function VaultActionPanel({ vault }: { vault: VaultData }) {
             onChange={(event) => setInput(event.target.value.replace(/[^\d.]/g, ""))}
             aria-label={`Amount to ${tab}`}
           />
-          <button type="button" className="max-button" onClick={() => setInput(toInputValue(maxFor(tab, ceiling), decimals))}>
+          <LiquidButton
+            type="button"
+            size="sm"
+            onClick={() => setInput(toInputValue(maxFor(tab, ceiling), decimals))}
+          >
             Max
-          </button>
+          </LiquidButton>
         </span>
       </label>
 
@@ -215,10 +220,17 @@ export function VaultActionPanel({ vault }: { vault: VaultData }) {
       {actions.error ? <Notice tone="error">{actions.error}</Notice> : null}
 
       {isConnected ? (
-        <button type="button" className="primary-action primary-action--block" disabled={disabled} onClick={submit}>
+        <LiquidButton
+          type="button"
+          variant="foreground"
+          size="xl"
+          className="w-full"
+          disabled={disabled}
+          onClick={submit}
+        >
           {actions.isBusy ? <span className="spinner" aria-hidden="true" /> : null}
           {buttonLabel()}
-        </button>
+        </LiquidButton>
       ) : (
         <div style={{ display: "flex", justifyContent: "center" }}>
           <ConnectButton label="Connect wallet to deposit" showBalance={false} />
