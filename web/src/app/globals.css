@@ -1247,38 +1247,8 @@ main {
 .site-footer {
   border-top: 1px solid var(--line-soft);
   margin-top: var(--section);
-  padding-block: 46px;
-}
-
-.footer-inner {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.footer-note {
-  font: 500 11px/1.6 var(--mono);
-  letter-spacing: 0.02em;
-  color: var(--faint);
-}
-
-.footer-links {
-  margin-left: auto;
-  display: flex;
-  gap: 18px;
-}
-
-.footer-links a {
-  font: 500 12px/1 var(--mono);
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  transition: color 0.15s;
-}
-
-.footer-links a:hover,
-.footer-links a:focus-visible {
-  color: var(--text);
+  /* No block padding: the footer lays out its own columns, and the wordmark below them is
+     deliberately allowed to sit tight against the base of the page. */
 }
 
 /* ------------------------------------------------------- composition ---- */
