@@ -16,44 +16,6 @@ const CONTRACT_ROWS: Array<{ key: string; label: string; note: string }> = [
   { key: "asset", label: "Asset", note: "USDT — the chain's own token, not one we minted" },
 ];
 
-const RESEARCH = [
-  {
-    name: "StakeKit / Yield.xyz",
-    repo: "stakekit/yield.xyz",
-    url: "https://github.com/stakekit/yield.xyz",
-    applied:
-      "Their unified yield API across 70+ networks establishes that aggregation needs one standardised interface per source. Phony's IStrategyAdapter is that interface, scoped to RWA yield on BOT Chain.",
-  },
-  {
-    name: "Ditto Network — curator vault",
-    repo: "dittonetwork/curator-vault",
-    url: "https://github.com/dittonetwork/curator-vault",
-    applied:
-      "The curator pattern, reduced to its safe core: the curator may whitelist adapters, weight them, and retire them, but every capital path leads back to the vault. There is no owner-controlled arbitrary transfer.",
-  },
-  {
-    name: "OpenZeppelin Contracts",
-    repo: "OpenZeppelin/openzeppelin-contracts",
-    url: "https://github.com/OpenZeppelin/openzeppelin-contracts",
-    applied:
-      "BotVault inherits ERC4626, Ownable, Pausable and ReentrancyGuard directly. The virtual-shares defence against first-depositor inflation comes with the base implementation.",
-  },
-  {
-    name: "ERC-3643 / T-REX",
-    repo: "aboudjem/ERC-3643",
-    url: "https://github.com/aboudjem/ERC-3643",
-    applied:
-      "Not implemented, but the adapter interface is deliberately narrow enough that a future ERC3643Adapter could enforce identity and compliance checks before deposit without changing the vault.",
-  },
-  {
-    name: "VaultWatch",
-    repo: "VaultWatch/vaultwatch-contracts",
-    url: "https://github.com/VaultWatch",
-    applied:
-      "Their keeper-orchestration pattern informed the HarvestBot: batch every strategy into one transaction, emit events for auditability, and gate execution on yield clearing a multiple of gas cost.",
-  },
-];
-
 export default function DocsPage() {
   const chainId = useChainId();
   const vault = useVaultData();
@@ -67,8 +29,7 @@ export default function DocsPage() {
           How Phony works.
         </h1>
         <p className="lead" style={{ marginTop: 18 }}>
-          Architecture, deployed addresses, and the open-source research the design is built
-          on.
+          Architecture and deployed addresses.
         </p>
         <div style={{ marginTop: 22 }}>
           <ModeBadge mode={vault.mode} />
@@ -176,55 +137,6 @@ export default function DocsPage() {
             </div>
           </div>
         )}
-      </Panel>
-
-      <Panel index="04" title="Research basis" state="Five references">
-        <div className="panel-body stack-16">
-          {RESEARCH.map((item) => (
-            <div className="policy-card" key={item.repo}>
-              <h4>
-                <a className="text-link" href={item.url} target="_blank" rel="noreferrer">
-                  {item.name}
-                </a>{" "}
-                <span className="micro" style={{ marginLeft: 6 }}>
-                  {item.repo}
-                </span>
-              </h4>
-              <p>{item.applied}</p>
-            </div>
-          ))}
-        </div>
-      </Panel>
-
-      <Panel index="05" title="Security posture" state="MVP">
-        <div className="panel-body stack-12">
-          <dl className="stack-0">
-            <div className="quote-row">
-              <dt>Reentrancy</dt>
-              <dd>ReentrancyGuard on every external entrypoint in vault, router, adapters</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Overflow</dt>
-              <dd>Solidity 0.8 checked arithmetic throughout</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Strategy failure</dt>
-              <dd>Per-strategy caps, emergency exit per adapter, vault-wide pause and recall</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Curator power</dt>
-              <dd>No admin path to an arbitrary transfer; vault asset excluded from rescue</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Price oracles</dt>
-              <dd>None. Yield is measured against principal held by each adapter</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Audit status</dt>
-              <dd>Unaudited hackathon build. Deposit accordingly</dd>
-            </div>
-          </dl>
-        </div>
       </Panel>
     </div>
   );
