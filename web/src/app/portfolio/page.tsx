@@ -1,12 +1,12 @@
 "use client";
 
 import { useAccount, useChainId } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ExternalLink } from "lucide-react";
 
 import { MetricGrid, ModeBadge, Notice, Panel } from "@/components/primitives";
 import { YieldChart } from "@/components/YieldChart";
 import { useActivity } from "@/hooks/useActivity";
+import { WalletButton } from "@/components/WalletButton";
 import { useVaultData } from "@/hooks/useVault";
 import { explorerUrlFor } from "@/lib/chains";
 import {
@@ -98,7 +98,7 @@ export default function PortfolioPage() {
             </p>
           </div>
           <div style={{ marginLeft: "auto" }}>
-            <ConnectButton showBalance={false} />
+            <WalletButton />
           </div>
         </div>
       )}

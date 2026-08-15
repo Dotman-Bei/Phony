@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useAccount, useChainId } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ExternalLink } from "lucide-react";
 
 import { useVaultActions } from "@/hooks/useVaultActions";
@@ -10,6 +9,7 @@ import type { VaultData } from "@/hooks/useVault";
 import { explorerUrlFor } from "@/lib/chains";
 import { formatSharePrice, formatToken, parseAmount, toInputValue } from "@/lib/format";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { WalletButton } from "@/components/WalletButton";
 import { Notice } from "./primitives";
 
 type Tab = "deposit" | "withdraw";
@@ -232,9 +232,9 @@ export function VaultActionPanel({ vault }: { vault: VaultData }) {
           {buttonLabel()}
         </LiquidButton>
       ) : (
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <ConnectButton label="Connect wallet to deposit" showBalance={false} />
-        </div>
+        /* RainbowKit's own ConnectButton renders solid markup it does not let you restyle, so
+           this goes through WalletButton — the same glass button as the nav. */
+        <WalletButton label="Connect wallet to deposit" full />
       )}
 
       {actions.hash ? (
