@@ -21,6 +21,7 @@
     "verify:testnet": "hardhat run scripts/verify.ts --network botTestnet",
     "verify:mainnet": "hardhat run scripts/verify.ts --network botMainnet",
     "e2e:testnet": "hardhat run scripts/e2e.ts --network botTestnet",
+    "fund:testnet": "hardhat run scripts/fund.ts --network botTestnet",
     "rotate:testnet": "hardhat run scripts/rotateStrategy.ts --network botTestnet",
     "migrate:testnet": "hardhat run scripts/migrateRouter.ts --network botTestnet",
     "migrate:mainnet": "hardhat run scripts/migrateRouter.ts --network botMainnet",
