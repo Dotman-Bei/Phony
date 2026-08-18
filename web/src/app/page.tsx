@@ -13,7 +13,7 @@ const MECHANICS = [
   {
     index: "02",
     title: "The router allocates",
-    body: "A curator-whitelisted strategy router splits the deposit by weight across treasury bills, private credit, and RWA liquidity. Unallocated weight stays idle as a reserve buffer for cheap withdrawals.",
+    body: "A curator-whitelisted strategy router deploys capital up to its target share of NAV and leaves the remainder idle in the vault, where it earns nothing and stays instantly withdrawable. Weights, caps and retirement are the curator's; moving money anywhere else is not.",
   },
   {
     index: "03",
@@ -29,7 +29,7 @@ const PROPERTIES = [
   },
   {
     title: "Withdrawal maximums tell the truth",
-    body: "Private credit principal is out on loan and cannot be recalled in-block. maxWithdraw reports what the strategies can actually free, so the UI never quotes an exit the chain will refuse.",
+    body: "An LP position cannot be unwound at its spot mark — the paired half has to be sold, and that sale pays the pool's fee. maxWithdraw prices the exit the way the exit will actually execute, so the UI never quotes an exit the chain will refuse.",
   },
   {
     title: "The curator cannot take the money",
@@ -40,19 +40,19 @@ const PROPERTIES = [
 const FAQ = [
   {
     q: "What exactly is being restaked?",
-    a: "A tokenized real-world asset — a treasury bill, a private credit note, a commodity receipt — that otherwise sits in a wallet earning a single flat rate. The vault accepts it, keeps it productive across several yield sources at once, and returns it on demand. The asset never leaves the ERC-20 rails it arrived on.",
+    a: "A tokenized real-world asset that otherwise sits in a wallet earning a single flat rate. On BOT Chain today that is the chain's own USDT, held by 287k addresses and not minted by this project. The vault accepts it, keeps it working in a live venue, and returns it on demand. The asset never leaves the ERC-20 rails it arrived on.",
   },
   {
     q: "Where does the yield actually come from?",
-    a: "Three sources, weighted by the curator: an ERC-4626 tokenized treasury product, a private credit pool, and a single-sided RWA liquidity position that earns trading fees. Each sits behind a strategy adapter implementing one interface, so a source can be swapped without touching the vault.",
+    a: "The trading fees of a live BDEX V2 USDT/WBOT pair — other people's swaps, each paying the pool's 0.3%. Not a rate an admin sets. It sits behind a strategy adapter implementing one interface, so another venue is a config entry and one adapter rather than a change to the vault.",
   },
   {
     q: "What happens if a strategy loses money?",
-    a: "The liquidity leg is the only one whose principal can fall, and the vault marks it to live pool value rather than carrying it at cost. A drawdown reduces NAV and therefore the share price, immediately and visibly. Harvest only ever transfers the surplus over principal, so a loss can never be booked as profit or paid out as a fee.",
+    a: "The LP leg's principal can fall — impermanent loss is real — and the vault marks it to live pool value rather than carrying it at cost. A drawdown reduces NAV and therefore the share price, immediately and visibly. Harvest only ever frees the surplus over principal, so a position underwater reports zero yield instead of paying a loss out as a distribution.",
   },
   {
     q: "Is this deployed with real yield sources?",
-    a: "The badge on every data surface answers that per network. The testnet deployment runs real contracts, real transactions, and real share accounting against mock yield sources that pay simulated coupons — labelled 'demo' everywhere it appears. Mainnet points the same adapters at production protocol addresses.",
+    a: "Yes, and there are no mock contracts in the repository to fall back on — not in the contracts, and not behind the tests, which run against a fork of the live chain. An earlier build shipped three legs backed by mock yield sources and disclosed them as 'demo'; deleting them was the better answer than labelling them. A T-bill leg and a credit leg remain designed for but unbuilt, because BOT Chain has no such venue yet.",
   },
   {
     q: "Who can pause or unwind the vault?",

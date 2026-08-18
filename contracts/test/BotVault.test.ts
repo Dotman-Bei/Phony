@@ -104,19 +104,42 @@ describe("BotVault", () => {
       expect(await strategy.availableLiquidity()).to.be.lt(await strategy.totalAssets());
     });
 
-    it("applies weights to the idle balance, so the reserve converges on its target", async () => {
+    it("holds the reserve at 40% of NAV across further deposits", async () => {
       const { alice, asset, vault } = await loadFixture(deployPhony);
       await (asset.connect(alice) as any).approve(await vault.getAddress(), usdt(2_000));
 
       await vault.connect(alice).deposit(usdt(500), alice.address);
       expect(await vault.idleAssets()).to.equal(usdt(200));
 
+      // Weights apply to NAV, not to the idle balance. The second deposit tops the buffer up
+      // to 40% of the larger NAV rather than deploying 60% of it a second time — 400, not the
+      // 280 that re-applying the weight to (200 + 500) would leave.
+      //
+      // Not exactly 400: entering the pool marks the position slightly above cost, so NAV at
+      // the moment of routing is a little under NAV once the entry lands. The reserve is sized
+      // against the first, which leaves it a hair under 40% of the second.
       await vault.connect(alice).deposit(usdt(500), alice.address);
-      // Not a per-deposit split: routing deploys 60% of whatever is idle, which after the second
-      // deposit is 200 + 500. So idle lands at 280, not 400, and each further deposit pulls the
-      // reserve nearer its 40% target from above rather than tracking it exactly.
-      expect(await vault.idleAssets()).to.equal(usdt(280));
-      expect(await vault.idleAssets()).to.be.lt((await vault.totalAssets() * 40n) / 100n);
+      expect(await vault.idleAssets()).to.be.closeTo(usdt(400), usdt(3));
+      expect(await vault.idleAssets()).to.be.gt((await vault.totalAssets() * 38n) / 100n);
+    });
+
+    it("does not erode the reserve when deployment runs repeatedly", async () => {
+      const { curator, alice, asset, vault } = await loadFixture(deployPhony);
+      await (asset.connect(alice) as any).approve(await vault.getAddress(), usdt(1_000));
+      await vault.connect(alice).deposit(usdt(1_000), alice.address);
+
+      const before = await vault.idleAssets();
+      expect(before).to.equal(usdt(400));
+
+      // The regression. `harvest()` redeploys after every sweep and the keeper calls it every
+      // five minutes, so this path runs on a schedule whether or not a deposit happened. While
+      // the weight was applied to the idle balance each pass took 60% of what remained: ten
+      // rounds left 0.4^10 of the buffer, and the live testnet vault sat at 100% deployed with
+      // an idle reserve of exactly zero while every document claimed 40%.
+      for (let i = 0; i < 10; i++) await vault.connect(curator).deployIdleFunds();
+
+      expect(await vault.idleAssets()).to.be.closeTo(before, usdt(1));
+      expect(await vault.idleAssets()).to.be.gt((await vault.totalAssets() * 35n) / 100n);
     });
 
     it("never leaves capital stranded in the router", async () => {

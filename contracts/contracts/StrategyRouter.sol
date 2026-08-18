@@ -24,8 +24,10 @@ import {IBotVault} from "./interfaces/IBotVault.sol";
 ///         bad strategies" rather than "curator takes the money".
 ///
 ///         `totalAllocationBps` is allowed to sit below 10 000. The gap is the vault's
-///         reserve buffer: leave 500 bps unallocated and 5% of TVL stays liquid in the
-///         vault for cheap withdrawals.
+///         reserve buffer: leave 500 bps unallocated and 5% of NAV stays liquid in the
+///         vault for cheap withdrawals. Note *NAV*, not "of each deposit" — see the note
+///         on `routeDeposit`, where getting that distinction wrong silently drained the
+///         buffer to nothing on a live deployment.
 contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -55,7 +57,7 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
     event StrategyAdded(uint256 indexed strategyId, address indexed adapter, uint256 allocationBps, uint256 maxDeposit);
     event StrategyUpdated(uint256 indexed strategyId, uint256 allocationBps, uint256 maxDeposit, bool active);
     event StrategyRemoved(uint256 indexed strategyId, address indexed adapter, uint256 recovered);
-    event DepositRouted(uint256 totalAmount, uint256 deployed);
+    event DepositRouted(uint256 routed, uint256 deployed);
     event WithdrawRouted(uint256 requested, uint256 withdrawn);
     event StrategyHarvested(uint256 indexed strategyId, address indexed adapter, uint256 amount);
     event HarvestCompleted(uint256 totalHarvested, uint256 timestamp);
@@ -172,28 +174,61 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStrategyRouter
-    /// @dev Weights are applied to `amount`, not to TVL, so the split is stateless and
-    ///      cheap. Drift between target and actual weights is corrected by `rebalance()`.
+    /// @dev The vault offers its whole idle balance; this decides how much of it should
+    ///      actually be working, then splits that between strategies by their share of
+    ///      `totalAllocationBps`. Drift between target and actual weights is corrected by
+    ///      `rebalance()`.
+    ///
+    ///      The target is a fraction of *NAV*, and the earlier version applying the weights
+    ///      to `amount` instead is the bug this shape exists to prevent. The two look
+    ///      identical on a first deposit — 60% of a 1 000 deposit into an empty vault is 60%
+    ///      of NAV either way — and diverge on every call after it, because re-applying the
+    ///      weight to whatever is left deploys 60% of the *remainder* each time. Idle then
+    ///      decays as 0.4^n: the keeper calling `harvest()` every five minutes drove the live
+    ///      testnet vault to 100% deployed inside an hour while the whitepaper, the README
+    ///      and the router's own doc comment all said 40% was held back. Sizing against NAV
+    ///      makes the buffer a fixed point that repeated calls converge on rather than erode.
+    ///
+    ///      Only the shortfall is pulled from the vault, so an already-balanced vault costs
+    ///      one `getTotalStrategyAssets()` read and no transfer at all.
     function routeDeposit(uint256 amount) external onlyVault nonReentrant returns (uint256 deployed) {
         if (amount == 0) return 0;
 
-        IERC20(asset).safeTransferFrom(vault, address(this), amount);
+        uint256 allocated = totalAllocationBps;
+        if (allocated == 0) return 0;
+
+        // NAV as the vault reports it: what it still holds plus what is already working.
+        // Read the vault's balance rather than trusting `amount` to be all of it, so the
+        // sizing stays correct if the vault ever offers a partial amount.
+        uint256 held = getTotalStrategyAssets();
+        uint256 wanted = ((IERC20(asset).balanceOf(vault) + held) * allocated) / MAX_BPS;
+        if (held >= wanted) return 0;
+
+        uint256 toDeploy = wanted - held;
+        if (toDeploy > amount) toDeploy = amount;
+        if (toDeploy == 0) return 0;
+
+        IERC20(asset).safeTransferFrom(vault, address(this), toDeploy);
 
         uint256 count = strategyCount;
         for (uint256 i = 0; i < count; ++i) {
             Strategy memory s = strategies[i];
             if (s.adapter == address(0) || !s.active || s.allocationBps == 0) continue;
 
-            uint256 target = (amount * s.allocationBps) / MAX_BPS;
+            // Normalised by `allocated`, not by MAX_BPS: the reserve was already carved out
+            // above, so what reaches here is entirely the strategies' to divide. This is the
+            // same normalisation `rebalance()` uses, and the two disagreeing was how the
+            // weight came to be applied twice.
+            uint256 target = (toDeploy * s.allocationBps) / allocated;
             if (target == 0) continue;
 
             IStrategyAdapter adapter = IStrategyAdapter(s.adapter);
 
             // Respect the per-strategy cap: never push a strategy past `maxDeposit`.
             if (s.maxDeposit != 0) {
-                uint256 held = adapter.totalAssets();
-                if (held >= s.maxDeposit) continue;
-                uint256 room = s.maxDeposit - held;
+                uint256 adapterHeld = adapter.totalAssets();
+                if (adapterHeld >= s.maxDeposit) continue;
+                uint256 room = s.maxDeposit - adapterHeld;
                 if (target > room) target = room;
             }
 
@@ -218,7 +253,9 @@ contract StrategyRouter is IStrategyRouter, Ownable, ReentrancyGuard {
         uint256 leftover = IERC20(asset).balanceOf(address(this));
         if (leftover > 0) IERC20(asset).safeTransfer(vault, leftover);
 
-        emit DepositRouted(amount, deployed);
+        // `routed` is what the router took on, not what the vault offered: the difference
+        // between the two is the reserve buffer staying where it belongs.
+        emit DepositRouted(toDeploy, deployed);
     }
 
     /// @inheritdoc IStrategyRouter

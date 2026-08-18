@@ -4,10 +4,15 @@ pragma solidity ^0.8.24;
 /// @title IStrategyRouter
 /// @notice Vault-facing view of the allocation engine.
 interface IStrategyRouter {
-    /// @notice Pull `amount` from the vault and spread it across active strategies.
-    /// @return deployed Amount actually placed into strategies. Anything not deployed
-    ///         (rounding dust, per-strategy caps) is returned to the vault before this
-    ///         call ends, so the vault's balance is always whole.
+    /// @notice Offer the vault's idle balance to the strategies and let the router take
+    ///         however much of it should be working.
+    /// @dev    `amount` is a ceiling, not an instruction. The router deploys only what is
+    ///         needed to bring strategy holdings up to `totalAllocationBps` of NAV, so the
+    ///         unallocated remainder stays in the vault as the reserve buffer and does not
+    ///         shrink each time this is called.
+    /// @return deployed Amount actually placed into strategies. Anything pulled but not
+    ///         deployed (rounding dust, per-strategy caps) is returned to the vault before
+    ///         this call ends, so the vault's balance is always whole.
     function routeDeposit(uint256 amount) external returns (uint256 deployed);
 
     /// @notice Unwind up to `amount` from strategies and push it to the vault.

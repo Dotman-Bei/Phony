@@ -14,7 +14,7 @@ import { crashPairedToken, deployPhony, generateTradingFees, usdt } from "./fixt
 describe("Integration", () => {
   describe("the full loop", () => {
     it("runs deposit -> allocate -> harvest -> withdraw against a real pool", async () => {
-      const { alice, asset, vault, router, strategy } = await loadFixture(deployPhony);
+      const { alice, asset, vault, router, strategy, feeRecipient } = await loadFixture(deployPhony);
       const vaultAddress = await vault.getAddress();
 
       // Deposit.
@@ -26,11 +26,33 @@ describe("Integration", () => {
       expect(await strategy.lpBalance()).to.be.gt(0n);
       expect(await router.getTotalStrategyAssets()).to.be.gt(0n);
 
-      // Harvest, after other people trade the pair.
+      // Yield arrives as other people trade the pair, and it is in the share price before
+      // anyone harvests — the mark is live, so there is nothing to wait for.
+      const priceAfterDeposit = await vault.sharePrice();
       await generateTradingFees();
       const priceBefore = await vault.sharePrice();
+      expect(priceBefore).to.be.gt(priceAfterDeposit);
+
+      // Harvest *realises* that mark rather than adding to it, so NAV steps down by what
+      // realising costs: the pool's fee on the way out, plus the 10% performance fee.
+      //
+      // This used to assert the share price rose here, and it did — but only because the
+      // vault immediately redeployed the proceeds and booked its own entry price impact as a
+      // gain. Once the reserve buffer stopped being re-deployed on every call that artefact
+      // went with it, which is the correct outcome: a vault must not report its own slippage
+      // as profit. Bound the cost instead of pretending there is none.
+      const navBefore = await vault.totalAssets();
       await vault.harvest();
-      expect(await vault.sharePrice()).to.be.gte(priceBefore);
+
+      const harvested = await vault.totalYieldHarvested();
+      const fee = await asset.balanceOf(feeRecipient.address);
+      expect(harvested).to.be.gt(0n);
+      expect(fee).to.be.gt(0n);
+
+      const navDrop = navBefore - (await vault.totalAssets());
+      expect(navDrop).to.be.lte(fee + (harvested + fee) / 4n);
+      // Whatever harvesting cost, the depositor is still ahead of where they came in.
+      expect(await vault.sharePrice()).to.be.gt(usdt(1));
 
       // Withdraw everything the vault says it can free.
       const exitable = await vault.maxWithdraw(alice.address);

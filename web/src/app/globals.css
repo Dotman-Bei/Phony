@@ -16,16 +16,16 @@
         metaphor.
      3. Saturated colour means risk, always. Violet is structural and never
         encodes a verdict; green/amber/red are reserved for the risk rating on a
-        strategy and for the live/demo data badge. Since nothing else on the page
+        strategy and for the data-provenance badge. Since nothing else on the page
         is saturated, a HIGH risk rating cannot be mistaken for decoration.
 
    Rule 3 is the one worth defending. The source system reserved saturation for a
    three-way verdict and warned against copying the constraint into a product
    with no comparable decision at its centre. This product has two: every strategy
    carries a low/medium/high risk rating, and every number on screen is either
-   live chain data or demo data from a mock yield source. Both are decisions a
-   depositor's money depends on, so both get to be the loudest thing on screen.
-   Yields and APYs stay white — a good number is not a verdict.
+   read from a chain this build has addresses for or plainly marked as not. Both
+   are decisions a depositor's money depends on, so both get to be the loudest
+   thing on screen. Yields and APYs stay white — a good number is not a verdict.
    ========================================================================== */
 
 :root {
@@ -721,9 +721,13 @@ main {
 }
 
 /* Mode badges carry the same semantic weight as a risk rating and must not be
-   pretty at the cost of being clear. Demo and unconfigured never borrow the live
-   colour: on this deployment the yield sources are mocks, and a number sourced
-   from a mock must never present itself as live. */
+   pretty at the cost of being clear: `unconfigured` never borrows the live colour,
+   because a chain this build has no addresses for must not read as a working one.
+
+   `.mode-demo` is kept deliberately, though nothing emits it any more — the mocks
+   it described were deleted and `DataMode` is now `live | unconfigured`. It stays
+   so that the day a leg does need caveating, the honest badge already exists and
+   nobody is tempted to ship it under the live colour. */
 .mode-badge {
   display: inline-flex;
   align-items: center;

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Phony — RWA yield restaking on BOT Chain",
     description:
-      "Deposit tokenized RWAs once. The vault allocates across treasury bills, private credit, and RWA liquidity, and compounds the yield into your share price.",
+      "Deposit once. The vault routes capital into a live BDEX liquidity position, keeps the rest instantly withdrawable, and compounds the trading fees into your share price. No mock yield sources.",
     type: "website",
   },
 };

@@ -173,7 +173,7 @@ describe("withdraw flow", () => {
     expect(screen.getByRole("button", { name: /amount exceeds maximum/i })).toBeDisabled();
   });
 
-  it("warns that the shortfall is capital a strategy cannot release yet", async () => {
+  it("explains the shortfall as the cost of unwinding, naming the amount", async () => {
     renderWithProviders(
       <VaultActionPanel
         vault={vaultFixture({ shares: usdt(2), positionValue: usdt(2), maxWithdraw: usdt(1.9) })}
@@ -181,7 +181,13 @@ describe("withdraw flow", () => {
     );
     await switchToWithdraw();
 
-    expect(screen.getByText(/cannot be recalled this block/i)).toBeInTheDocument();
+    // The gap between the mark and the exit quote is the pool's fee and price impact, not
+    // capital locked up somewhere. Saying so is the whole point of the notice — an earlier
+    // version blamed private credit principal being out on loan, which is a leg this vault
+    // has never had.
+    expect(screen.getByText(/marked above what unwinding it would actually realise/i))
+      .toBeInTheDocument();
+    expect(screen.getByText(/0\.10 USDT/)).toBeInTheDocument();
   });
 
   it("leaves a margin below the quote when Max is pressed", async () => {

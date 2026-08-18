@@ -106,12 +106,19 @@ export const NETWORKS: Record<string, NetworkConfig> = {
         pairedToken: process.env.PAIRED_TOKEN || WBOT,
         pairedSymbol: "WBOT",
         weightBps: 6_000n,
-        capWhole: BigInt(process.env.LEG_CAP || 10_000),
+        // Mainnet's USDT/WBOT pair holds ~25.7 USDT against testnet's ~6 500, so the cap is
+        // two, not the 10 000 this used to say. `npm run scan:mainnet` prints the survey the
+        // number comes from. It is a small vault because it is a small pool, and sizing the
+        // cap to the pool we wish existed would only mean paying our own price impact twice
+        // and calling the result yield.
+        capWhole: BigInt(process.env.LEG_CAP || 2),
         risk: "medium",
       },
     ],
-    // Start capped. Raise it once the vault has run on mainnet with real capital.
-    depositCap: BigInt(process.env.DEPOSIT_CAP || 25_000),
+    // ~7.5% of pool depth deployed at the cap, matching testnet's discipline. Raise both the
+    // day the pool is deeper — `npm run preflight:mainnet` refuses the deploy if they drift
+    // past what the pool can absorb, so this is checked rather than remembered.
+    depositCap: BigInt(process.env.DEPOSIT_CAP || 5),
   },
 };
 

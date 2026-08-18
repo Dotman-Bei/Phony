@@ -52,10 +52,12 @@ export default function DocsPage() {
           <div className="policy-card">
             <h4>StrategyRouter — the allocation engine</h4>
             <p>
-              Holds the curator&apos;s whitelist and the weights between adapters. Deposits are
-              split by weight; withdrawals are pulled proportionally so the distribution
-              survives an exit; harvests are swept in one pass. Weights that do not sum to
-              100% leave the remainder idle in the vault as the reserve buffer — currently{" "}
+              Holds the curator&apos;s whitelist and the weights between adapters. Deployment is
+              sized against NAV rather than against each deposit, so the buffer is a level the
+              vault returns to rather than one that erodes as capital is routed again;
+              withdrawals are pulled proportionally so the distribution survives an exit;
+              harvests are swept in one pass. Weights that do not sum to 100% leave the
+              remainder idle in the vault as the reserve buffer — currently{" "}
               {formatBps(vault.reserveBps, 0)}.
             </p>
           </div>

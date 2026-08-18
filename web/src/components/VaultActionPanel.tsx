@@ -206,8 +206,9 @@ export function VaultActionPanel({ vault }: { vault: VaultData }) {
       {!isDeposit && vault.maxWithdraw < vault.positionValue && vault.positionValue > 0n ? (
         <Notice tone="warn">
           {formatToken(vault.positionValue - vault.maxWithdraw, decimals, 2)} {vault.assetSymbol} of
-          your position is in strategies that cannot be recalled this block — private credit
-          principal is out on loan. It becomes withdrawable as borrowers repay.
+          your position is marked above what unwinding it would actually realise. Exiting the
+          liquidity position sells its paired half back through the pool, and that sale pays the
+          0.3% fee and moves the price against itself. The gap narrows as the pool deepens.
         </Notice>
       ) : null}
 

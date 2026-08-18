@@ -118,11 +118,25 @@ async function main() {
     log(`  registered ${leg.key}`, `${Number(legConfig.weightBps) / 100}% target`);
   }
 
+  /* --- 5. persist the addresses before anything else can fail ----------- */
+
+  // The manifest is the only route addresses take into the frontend, so it must not lag the
+  // chain. Writing it after the last transaction is what makes that possible: an RPC that
+  // times out *after* the vault is already re-pointed leaves the repo naming a router the
+  // vault no longer talks to, and the app then reads a contract holding nothing. Recording
+  // the addresses the moment they are live costs nothing and removes the window.
+  manifest.contracts.router = routerAddress;
+  for (const leg of legs) manifest.contracts[leg.key] = leg.adapter;
+  manifest.legs = legs;
+  manifest.migratedAt = new Date().toISOString();
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  log("  manifest", `deployments/${network.name}.json`);
+
   const deployTx = await vault.deployIdleFunds();
   const deployReceipt = await deployTx.wait();
   log("  redeployed", `gas ${deployReceipt?.gasUsed}  tx ${deployTx.hash}`);
 
-  /* --- 5. report and rewrite the manifest ------------------------------- */
+  /* --- 6. report -------------------------------------------------------- */
 
   const navAfter: bigint = await vault.totalAssets();
   const supplyAfter: bigint = await vault.totalSupply();
@@ -136,13 +150,14 @@ async function main() {
       navAfter >= navBefore ? navAfter - navBefore : navBefore - navAfter,
     )}  (round trip through the pool)`,
   );
-  log("idle reserve", `${Number(reserveBufferBps(config)) / 100}% target`);
-
-  manifest.contracts.router = routerAddress;
-  for (const leg of legs) manifest.contracts[leg.key] = leg.adapter;
-  manifest.legs = legs;
-  manifest.migratedAt = new Date().toISOString();
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  const idle = await vault.idleAssets();
+  log(
+    "idle reserve",
+    navAfter > 0n
+      ? `${fmt(idle)}  (${((Number(idle) / Number(navAfter)) * 100).toFixed(1)}% of NAV, ` +
+          `${Number(reserveBufferBps(config)) / 100}% target)`
+      : `${Number(reserveBufferBps(config)) / 100}% target`,
+  );
 
   console.log(`\n  Next:`);
   console.log(`    npm run export-abi`);

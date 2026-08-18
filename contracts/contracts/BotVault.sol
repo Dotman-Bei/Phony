@@ -253,9 +253,11 @@ contract BotVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IBotVault {
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
-    /// @dev Hand the router everything it is willing to deploy. The router pulls what it
-    ///      needs and returns the undeployable remainder, so the reserve buffer emerges
-    ///      from the curator's allocation weights instead of being configured twice.
+    /// @dev Offer the router the whole idle balance and let it take what should be working.
+    ///      It sizes that against NAV, so the reserve buffer emerges from the curator's
+    ///      allocation weights instead of being configured twice — and, importantly, holds
+    ///      there. Calling this repeatedly is a no-op once the vault is balanced, which is
+    ///      what makes it safe for the keeper to run on a schedule.
     function _deployToStrategies() internal {
         if (address(strategyRouter) == address(0) || paused()) return;
 

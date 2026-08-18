@@ -141,9 +141,9 @@ export default function PortfolioPage() {
             </dl>
 
             <p style={{ fontSize: 13, lineHeight: "21px", color: "var(--faint)" }}>
-              Holding the underlying {vault.assetSymbol} directly would earn the T-bill rate
-              alone. The blended figure is what the vault currently pays after the reserve
-              buffer&apos;s drag, before the performance fee is taken on harvest.
+              Holding {vault.assetSymbol} in a wallet earns nothing at all. The blended figure is
+              what the vault currently pays after the idle reserve&apos;s drag, before the
+              performance fee is taken on harvest.
             </p>
           </div>
         </Panel>

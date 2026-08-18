@@ -108,9 +108,40 @@ yield = totalAssets() - totalDeposited
 yield. A position underwater on impermanent loss reports **zero** yield, not a loss dressed as a
 distribution.
 
-### Two things a real DEX taught this code
+### Three things a live deployment taught this code
 
-Both were found by running against live liquidity, and both are pinned by tests.
+All three were found by running against real liquidity rather than a mock, and all three are
+pinned by tests.
+
+**A reserve applied to the wrong denominator is not a reserve.** The router used to split each
+*deposit* by weight — 60% deployed, 40% left idle — which is indistinguishable from the correct
+behaviour on the first deposit into an empty vault and diverges on every call after it. Routing
+runs again on every deposit *and* on every `harvest()`, so each pass deployed 60% of whatever was
+still idle: the buffer decayed as 0.4ⁿ, and with the keeper harvesting every five minutes the live
+testnet vault reached **100% deployed with an idle reserve of exactly zero** while this README,
+the router's own doc comment and the whitepaper all said 40% was held back. The frontend was the
+only part telling the truth, because it computes the reserve slice from `idleAssets()` rather than
+from the configured weight.
+
+The fix sizes the deployment against NAV instead: the router deploys only what brings strategy
+holdings up to `totalAllocationBps` of NAV, so repeated calls converge on the buffer rather than
+eroding it, and an already-balanced vault costs one view call and no transfer. Three consecutive
+`harvest()` calls against the live testnet vault, which is the exact path that used to drain it:
+
+```
+before      nav 4.062496  idle 1.626375 (40.0%)  deployed 2.436121 (60.0%)
+harvest 1   nav 4.062495  idle 1.624999 (40.0%)  deployed 2.437496 (60.0%)
+harvest 2   nav 4.062495  idle 1.624998 (40.0%)  deployed 2.437497 (60.0%)
+harvest 3   nav 4.062495  idle 1.624998 (40.0%)  deployed 2.437497 (60.0%)
+```
+
+The old code would have read 40% → 16% → 6.4% → 2.6%.
+
+One consequence is worth stating because it changed a test rather than being caught by one:
+`harvest()` now *lowers* the share price slightly, by the pool's exit fee plus the 10% performance
+fee. It always should have. The old code appeared to raise it only because it immediately
+redeployed the proceeds and booked its own entry price impact as a gain — a vault reporting its
+own slippage as profit. The integration test asserted that rise; it now bounds the cost instead.
 
 **Swapping half is wrong.** A single-asset vault entering a two-sided pool has to swap part of the
 deposit. Swapping exactly half fails: the swap itself moves the price, so the paired tokens bought
@@ -136,8 +167,8 @@ on chain against real BDEX liquidity.
 | | Address |
 |---|---|
 | **BotVault** (brRWA) | [`0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab`](https://scan.bohr.life/address/0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab#code) |
-| **StrategyRouter** | [`0x624F37AD9b7Df06B980dA17a01d22CD0924D26F3`](https://scan.bohr.life/address/0x624F37AD9b7Df06B980dA17a01d22CD0924D26F3#code) |
-| **BdexV2LpStrategy** | [`0xfc06f27f2b63FE97916d16783E094aE77823534B`](https://scan.bohr.life/address/0xfc06f27f2b63FE97916d16783E094aE77823534B#code) |
+| **StrategyRouter** | [`0xa36809be4dCB1D8C901F60ab5E5a7A4AcAfafc9C`](https://scan.bohr.life/address/0xa36809be4dCB1D8C901F60ab5E5a7A4AcAfafc9C#code) |
+| **BdexV2LpStrategy** | [`0x24AA76AA2DecdcC38Bd97bBAFdaf44c557B57eee`](https://scan.bohr.life/address/0x24AA76AA2DecdcC38Bd97bBAFdaf44c557B57eee#code) |
 
 Contracts it uses but does not own:
 
@@ -148,16 +179,16 @@ Contracts it uses but does not own:
 | BDEX V2 Router02 | `0xD6425a02f0845B8D99e349C34D2E7A576E177345` |
 | BDEX V2 Factory | `0x65b8e98ceA190d8c28B3e4716402027f634d15a3` |
 
-**60%** of deposits go to the LP leg, leaving a **40% idle reserve**; 10% performance fee on yield
-only. Caps are sized against pool depth: the pair holds ~6,500 USDT, so the strategy is capped at
-500 USDT and the vault at 1,000. A position that is a large fraction of the pool pays its own
+**60%** of NAV is deployed to the LP leg, leaving a **40% idle reserve**; 10% performance fee on
+yield only. Caps are sized against pool depth: the pair holds ~6,500 USDT, so the strategy is capped
+at 500 USDT and the vault at 1,000. A position that is a large fraction of the pool pays its own
 price impact twice and makes NAV a function of its own size rather than of the market.
 
-The router and adapter have both been replaced since the first deploy, and the **vault address has
-never changed** — which is the point of doing it this way. Two scripts cover the two cases:
-`rotateStrategy.ts` when only an adapter changed, and `migrateRouter.ts` when the router did, which
-additionally recalls capital and re-points the vault. Neither mints or burns a share, so published
-links, verified explorer pages and depositors' positions all survive a fix.
+The router and adapter have each been replaced twice since the first deploy, and the **vault
+address has never changed** — which is the point of doing it this way. Two scripts cover the two
+cases: `rotateStrategy.ts` when only an adapter changed, and `migrateRouter.ts` when the router did,
+which additionally recalls capital and re-points the vault. Neither mints or burns a share, so
+published links, verified explorer pages and depositors' positions all survive a fix.
 
 Each migration costs one round trip through the pool — 0.0102 USDT for the adapter rotation and
 0.0073 for the router migration, on a ~4 USDT vault. That is the 0.3% swap fee on the paired half,
@@ -174,7 +205,8 @@ Manifest: [`contracts/deployments/botTestnet.json`](contracts/deployments/botTes
 contracts/          Hardhat workspace — Solidity, tests, deploy + keeper scripts
   contracts/        BotVault, StrategyRouter, BaseStrategy, BdexV2LpStrategy, interfaces
   test/             fork-based suite; no mocks, no local stand-ins
-  scripts/          preflight · deploy · verify · e2e · exit · harvestBot · exportAbi
+  scripts/          scanPools · inspectPair · preflight · deploy · verify · e2e · exit
+                    rotateStrategy · migrateRouter · harvestBot · exportAbi
 web/                Next.js 16 frontend — the Kyvrane horizon-light design system
   src/app/          landing · /vault · /strategies · /portfolio · /docs
   src/lib/          chains, wagmi, contract bindings, formatting
@@ -206,6 +238,7 @@ cd contracts
 cp .env.example .env
 npm run new-deployer       # fresh throwaway key -> .env, prints the address
                            # then claim tBOT: https://faucet.botchain.ai/basic
+npm run scan:testnet       # every BDEX pair holding USDT, ranked by depth
 npm run preflight:testnet  # read-only. Sends nothing.
 npm run deploy:testnet
 npm run verify:testnet
@@ -219,23 +252,62 @@ RPC that does not resolve, a chainId disagreeing with the config, an unfunded de
 that does not exist, or a pool too thin to enter. It caught a stale `ASSET_DECIMALS=18` that would
 have made every amount in the deployment wrong by a factor of 10¹².
 
+`scan` and `inspect` answer the question preflight cannot, because preflight only checks the leg
+already in the config: *is this the right pool at all?* `scan` ranks every BDEX pair by how much
+asset it holds; `PAIR=0x… npm run inspect:mainnet` then prints one pair's reserves, its paired
+token's metadata, whether the factory really registered it, and what a round trip costs at several
+sizes. Between them they are how the mainnet caps were chosen and how the chain's deepest USDT pool
+was rejected — see [Mainnet](#mainnet).
+
 There is **no faucet for the asset**, because the asset is real USDT. `e2e` acquires it by swapping
 native BOT through BDEX. `npm run exit` withdraws a whole position from a deployment.
+`npm run rotate:testnet` replaces an adapter and `npm run migrate:testnet` replaces the router,
+both keeping the vault address.
 
 ### Mainnet
 
 Mainnet is deliberately last. Chain 677, USDT `0xaBabc7Dd…7a3C`, BDEX Router02 `0x1414eD29…9e76` —
-all defaulted in `scripts/config.ts`, so the deploy needs no addresses passed in. Check pool depth
-first and size `LEG_CAP` / `DEPOSIT_CAP` against it:
+all defaulted in `scripts/config.ts`, so the deploy needs no addresses passed in.
 
 ```bash
-npm run preflight:mainnet
+npm run scan:mainnet       # every BDEX pair holding USDT, ranked by depth
+npm run preflight:mainnet  # read-only. Sends nothing.
 npm run deploy:mainnet && npm run verify:mainnet
 ```
 
 Then flip the frontend with one variable: `NEXT_PUBLIC_DEFAULT_CHAIN_ID=677`.
 
 Gas support: https://forms.gle/QGWNnmthCDgL92uR9
+
+**Mainnet is a much smaller pond than testnet, and the config says so.** `scan:mainnet` walks all
+27 BDEX V2 pairs and reports how much USDT each one holds. The result decides the caps:
+
+| Pair | USDT depth | Usable |
+|---|---|---|
+| USDT/Money | 470,741 | **no** — see below |
+| USDT/WBOT | 25.68 | yes |
+| USDT/COW | 16.07 | yes, too thin to bother |
+| USDT/LGNS | 8.19 | " |
+| everything else | < 7 | " |
+
+The one deep pool on the chain is unusable. `Money` (`0xdaaABBD1…a5e2`, verified as `MToken`) is
+fee-on-transfer — 2% on buys, 10% on sells — with an owner-settable `isBlacklisted` mapping that
+exempts only the pair, a `tradingEnabled` kill switch, and a 10-second sell cooldown. The adapter
+would enter 2% short of what the router quoted, and far worse, `_sourceLiquidity` prices exits with
+the pool's 0.3% fee and would therefore over-quote every exit by the missing 10%. `maxWithdraw`
+would quote an exit the chain refuses — the exact failure the whole design exists to prevent. The
+adapter reverting rather than transacting there is the correct outcome; it is not built for such
+tokens and does not pretend to be. (The testnet USDT/Money pair was rejected for the same reason
+while picking a second test venue — see `test/fixtures.ts`.)
+
+That leaves USDT/WBOT, which holds **25.68 USDT** against testnet's 6,570. WBOT itself is clean: a
+WETH9-style wrapper with no owner, no tax and no hooks. So mainnet ships at `LEG_CAP=2`,
+`DEPOSIT_CAP=5` — the same ~7.5%-of-depth discipline as testnet, applied to the pool that actually
+exists. `preflight:mainnet` refuses the deploy if the caps drift past what the pool can absorb, so
+this is enforced rather than remembered.
+
+It is a small vault because it is a small pool. Sizing the cap to the pool we wish existed would
+only mean paying our own price impact twice and calling the result yield.
 
 ### Hosting the frontend
 
@@ -266,11 +338,11 @@ against, which is the point — but it also means the tests exercise things a mo
 | Real drawdown | `crashPairedToken` dumps WBOT into the pool so its price genuinely falls. The old mock had a `setLpValueBps` setter for this. |
 | Real funding | Test USDT comes from impersonating a large holder. There is no mint function available. |
 
-**68 tests**, all against live BDEX liquidity:
+**69 tests**, all against live BDEX liquidity:
 
 | Suite | Covers |
 |---|---|
-| `BotVault` | ERC-4626 conformance, weighted routing, the reserve buffer, liquidity-aware maxima, harvest and fees, pause, curator controls, multi-user share accounting |
+| `BotVault` | ERC-4626 conformance, weighted routing, the reserve buffer holding across repeated deployment, liquidity-aware maxima, harvest and fees, pause, curator controls, multi-user share accounting |
 | `StrategyRouter` | whitelisting, weight ceilings, wrong-asset rejection, caps, proportional withdrawal across two venues, retirement, rebalancing, packed views |
 | `Integration` | the full loop, NAV conservation at every step, a real drawdown, the curator-cannot-drain sequence, emergency exit |
 | `Smoke` | the fork itself, the exit-quote regression, fee accrual, the realised-APY rule |
