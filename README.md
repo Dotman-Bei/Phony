@@ -197,6 +197,30 @@ success.
 
 Manifest: [`contracts/deployments/botTestnet.json`](contracts/deployments/botTestnet.json).
 
+### Trying it yourself
+
+Point a wallet at **chain 968**, RPC `https://rpc.bohr.life`, explorer `https://scan.bohr.life`.
+Then two things are needed, and only one of them has a faucet:
+
+| | |
+|---|---|
+| **Gas** | [faucet.botchain.ai/basic](https://faucet.botchain.ai/basic) — 10 tBOT per 24h. |
+| **The asset** | No faucet, because it is the chain's real USDT. Acquire it by swapping BOT for `0x75edC933…20fe3` through BDEX Router02 at `0xD6425a02…177345`. |
+
+That second row is friction, and it is the honest kind: a vault that could mint its own deposit
+token would not be accepting a real asset. Anyone holding the deployer key can shortcut it —
+`RECIPIENT=0x… npm run fund:testnet` sends a wallet both, buying the USDT on BDEX if the deployer
+is short.
+
+Once funded, the whole loop is on `/vault`: deposit, watch the allocation re-weight to 60/40,
+harvest, withdraw. Two expectations worth setting before you look:
+
+- **The APY will read 0.00% unless somebody has recently traded the pair.** Yield here is a real
+  fee stream, and a quiet pool pays nothing. The vault reports zero rather than annualising a
+  mark-to-market gain — pinned by a test that says exactly that.
+- **`Exitable this block` sits below TVL.** That gap is what unwinding the LP would actually cost.
+  It is the number `maxWithdraw` is built on, so the UI never offers an exit the chain refuses.
+
 ---
 
 ## Repository layout
@@ -206,7 +230,7 @@ contracts/          Hardhat workspace — Solidity, tests, deploy + keeper scrip
   contracts/        BotVault, StrategyRouter, BaseStrategy, BdexV2LpStrategy, interfaces
   test/             fork-based suite; no mocks, no local stand-ins
   scripts/          scanPools · inspectPair · preflight · deploy · verify · e2e · exit
-                    rotateStrategy · migrateRouter · harvestBot · exportAbi
+                    fund · rotateStrategy · migrateRouter · harvestBot · exportAbi
 web/                Next.js 16 frontend — the Kyvrane horizon-light design system
   src/app/          landing · /vault · /strategies · /portfolio · /docs
   src/lib/          chains, wagmi, contract bindings, formatting
@@ -245,6 +269,8 @@ npm run verify:testnet
 npm run export-abi
 npm run e2e:testnet        # full loop against real BDEX
 npm run harvest-bot        # keeper, leave running
+
+RECIPIENT=0x… npm run fund:testnet   # send a test wallet gas + USDT to try the UI
 ```
 
 `preflight` earns its place: every check it makes otherwise costs a failed deploy to discover — an
@@ -260,9 +286,10 @@ sizes. Between them they are how the mainnet caps were chosen and how the chain'
 was rejected — see [Mainnet](#mainnet).
 
 There is **no faucet for the asset**, because the asset is real USDT. `e2e` acquires it by swapping
-native BOT through BDEX. `npm run exit` withdraws a whole position from a deployment.
-`npm run rotate:testnet` replaces an adapter and `npm run migrate:testnet` replaces the router,
-both keeping the vault address.
+native BOT through BDEX, and `fund` does the same on behalf of a wallet that is not the deployer —
+`USDT_AMOUNT`, `GAS_AMOUNT` and `BOT_SPEND` tune it. `npm run exit` withdraws a whole position from
+a deployment. `npm run rotate:testnet` replaces an adapter and `npm run migrate:testnet` replaces
+the router, both keeping the vault address.
 
 ### Mainnet
 
