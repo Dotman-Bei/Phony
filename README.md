@@ -9,6 +9,11 @@ claim.
 Built for the **BOT Chain Builder Challenge**, RWA Applications track (RWA Restaking · Product
 Aggregation · Infrastructure).
 
+**Live app: [phony-rust.vercel.app](https://phony-rust.vercel.app/)** — running against the
+verified testnet deployment on chain 968. Deposit, allocation, harvest and withdraw are all real
+transactions against a live BDEX pair; [Trying it yourself](#trying-it-yourself) covers what a
+wallet needs first.
+
 ---
 
 ## No simulated yield
@@ -199,8 +204,9 @@ Manifest: [`contracts/deployments/botTestnet.json`](contracts/deployments/botTes
 
 ### Trying it yourself
 
-Point a wallet at **chain 968**, RPC `https://rpc.bohr.life`, explorer `https://scan.bohr.life`.
-Then two things are needed, and only one of them has a faucet:
+The app is live at **[phony-rust.vercel.app](https://phony-rust.vercel.app/)**. Point a wallet at
+**chain 968**, RPC `https://rpc.bohr.life`, explorer `https://scan.bohr.life`. Then two things are
+needed, and only one of them has a faucet:
 
 | | |
 |---|---|
@@ -438,12 +444,15 @@ Frontend design system derived from [mystiquemide/kyvrane](https://github.com/my
 
 ## Links
 
+**App:** https://phony-rust.vercel.app/ · **Repository:** https://github.com/Dotman-Bei/Phony
+
 | | Mainnet | Testnet |
 |---|---|---|
 | Chain ID | 677 | 968 |
 | RPC | https://rpc.botchain.ai | https://rpc.bohr.life |
 | Explorer | https://scan.botchain.ai | https://scan.bohr.life |
 | Faucet | — | https://faucet.botchain.ai/basic (10 tBOT / 24h) |
+| Vault | not yet deployed | [`0x901e837d…AC14FFab`](https://scan.bohr.life/address/0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab#code) |
 
 BOT Chain: https://www.botchain.ai/en · Dev docs: https://dev-docs.botchain.ai ·
 BDEX addresses: https://dev-docs.botchain.ai/docs/DEX/contract-addresses/
