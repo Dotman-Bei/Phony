@@ -62,6 +62,21 @@ const SHARED = {
 /** WBOT is deployed at the same address on both networks. */
 const WBOT = "0xD5452816194a3784dBa983426cCe7c122F4abd30";
 
+/**
+ * Position-sizing override, scoped to one network.
+ *
+ * There is deliberately no unscoped `LEG_CAP` fallback. A single variable covering both
+ * networks reads as a convenience and behaves as a trap: testnet's USDT/WBOT pool is ~250x
+ * deeper than mainnet's, so a number sized for one is badly wrong for the other. A `.env` left
+ * over from testnet deploys, carrying `LEG_CAP=500` against a mainnet pool holding 26 USDT, is
+ * exactly what preflight refused on the first mainnet attempt — and preflight is the backstop,
+ * not the design. Scoping the name means the wrong value cannot be reached in the first place.
+ */
+function sized(scope: "TESTNET" | "MAINNET", name: string, fallback: bigint): bigint {
+  const raw = process.env[`${scope}_${name}`];
+  return raw === undefined || raw.trim() === "" ? fallback : BigInt(raw);
+}
+
 export const NETWORKS: Record<string, NetworkConfig> = {
   botTestnet: {
     ...SHARED,
@@ -83,11 +98,11 @@ export const NETWORKS: Record<string, NetworkConfig> = {
         // pays its own price impact twice — once entering, once leaving — and makes NAV a
         // function of our own size rather than of the market. 500 keeps the deployed leg
         // under ~8% of depth.
-        capWhole: BigInt(process.env.LEG_CAP || 500),
+        capWhole: sized("TESTNET", "LEG_CAP", 500n),
         risk: "medium",
       },
     ],
-    depositCap: BigInt(process.env.DEPOSIT_CAP || 1_000),
+    depositCap: sized("TESTNET", "DEPOSIT_CAP", 1_000n),
   },
 
   botMainnet: {
@@ -111,14 +126,14 @@ export const NETWORKS: Record<string, NetworkConfig> = {
         // number comes from. It is a small vault because it is a small pool, and sizing the
         // cap to the pool we wish existed would only mean paying our own price impact twice
         // and calling the result yield.
-        capWhole: BigInt(process.env.LEG_CAP || 2),
+        capWhole: sized("MAINNET", "LEG_CAP", 2n),
         risk: "medium",
       },
     ],
     // ~7.5% of pool depth deployed at the cap, matching testnet's discipline. Raise both the
     // day the pool is deeper — `npm run preflight:mainnet` refuses the deploy if they drift
     // past what the pool can absorb, so this is checked rather than remembered.
-    depositCap: BigInt(process.env.DEPOSIT_CAP || 5),
+    depositCap: sized("MAINNET", "DEPOSIT_CAP", 5n),
   },
 };
 
