@@ -175,8 +175,12 @@ export default function PortfolioPage() {
                 <tr>
                   <th>Event</th>
                   <th>Amount</th>
-                  <th>Shares</th>
-                  <th>Account</th>
+                  {/* Six columns of mono text do not fit a phone. Shares are derivable from
+                      the amount and the share price shown above, and the account is one tap
+                      away in the transaction — so those two leave and the event, the amount,
+                      the time and the proof link stay. */}
+                  <th className="col-secondary">Shares</th>
+                  <th className="col-secondary">Account</th>
                   <th>Time</th>
                   <th>Tx</th>
                 </tr>
@@ -188,10 +192,10 @@ export default function PortfolioPage() {
                     <td className="num">
                       {formatToken(entry.assets, decimals, 4)} {vault.assetSymbol}
                     </td>
-                    <td className="num">
+                    <td className="num col-secondary">
                       {entry.kind === "harvest" ? "--" : formatToken(entry.shares, decimals, 4)}
                     </td>
-                    <td>
+                    <td className="col-secondary">
                       {entry.account
                         ? isConnected && entry.account.toLowerCase() === address?.toLowerCase()
                           ? "You"

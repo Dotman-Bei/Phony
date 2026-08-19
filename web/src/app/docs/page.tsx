@@ -102,7 +102,9 @@ export default function DocsPage() {
               <thead>
                 <tr>
                   <th>Contract</th>
-                  <th>Role</th>
+                  {/* The role is explanation; the name and the address are the record. On a
+                      phone the explanation leaves so the address stays readable. */}
+                  <th className="col-secondary">Role</th>
                   <th>Address</th>
                 </tr>
               </thead>
@@ -113,7 +115,12 @@ export default function DocsPage() {
                   return (
                     <tr key={row.key}>
                       <td>{row.label}</td>
-                      <td style={{ whiteSpace: "normal", color: "var(--muted)" }}>{row.note}</td>
+                      <td
+                        className="col-secondary"
+                        style={{ whiteSpace: "normal", color: "var(--muted)" }}
+                      >
+                        {row.note}
+                      </td>
                       <td>
                         <a
                           className="text-link"
