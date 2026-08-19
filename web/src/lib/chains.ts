@@ -53,12 +53,18 @@ export const hardhatChain = defineChain({
 export const supportedChains = [botChain, botTestnet, hardhatChain] as const;
 
 /**
- * The chain the app targets by default. Testnet until the mainnet deployment lands,
- * at which point NEXT_PUBLIC_DEFAULT_CHAIN_ID flips to 677 — the frontend switch is a
- * single env var, not a code change.
+ * The chain the app targets before a wallet connects.
+ *
+ * Mainnet, since the vault is deployed and verified there. The fallback is the mainnet id
+ * rather than the env var alone because the hosted build sets no environment at all — leaving
+ * the default on testnet would have meant a live site quietly pointing at testnet while the
+ * README advertised mainnet addresses. Set NEXT_PUBLIC_DEFAULT_CHAIN_ID=968 to develop against
+ * testnet locally; connecting a wallet to either chain works regardless, because every read is
+ * keyed on the connected chain and an unconfigured one renders as unconfigured rather than
+ * guessing an address.
  */
 export const defaultChainId = Number(
-  process.env.NEXT_PUBLIC_DEFAULT_CHAIN_ID || botTestnet.id,
+  process.env.NEXT_PUBLIC_DEFAULT_CHAIN_ID || botChain.id,
 );
 
 export function explorerUrlFor(chainId: number, kind: "tx" | "address", value: string): string {

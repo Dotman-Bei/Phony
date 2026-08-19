@@ -9,10 +9,11 @@ claim.
 Built for the **BOT Chain Builder Challenge**, RWA Applications track (RWA Restaking · Product
 Aggregation · Infrastructure).
 
-**Live app: [phony-rust.vercel.app](https://phony-rust.vercel.app/)** — running against the
-verified testnet deployment on chain 968. Deposit, allocation, harvest and withdraw are all real
-transactions against a live BDEX pair; [Trying it yourself](#trying-it-yourself) covers what a
-wallet needs first.
+**Live app: [phony-rust.vercel.app](https://phony-rust.vercel.app/)** · deployed and verified on
+**BOT Chain Mainnet** (chain 677) and **testnet** (968). Deposit, allocation, harvest and withdraw
+are all real transactions against a live BDEX pair. The app defaults to mainnet; connect a wallet
+to testnet and every read follows it, which is where [Trying it yourself](#trying-it-yourself)
+points, because the mainnet pool is too thin to be worth entering.
 
 ---
 
@@ -163,11 +164,41 @@ against realisable value, which covers the round trip.
 
 ---
 
+## Live deployment — BOT Chain Mainnet (chain 677)
+
+All three contracts are deployed and **verified with source** on
+[BOTScan](https://scan.botchain.ai). This is the deployment the app targets by default.
+
+| | Address |
+|---|---|
+| **BotVault** (brRWA) | [`0x6F1C75f7844c6Ffb1b1d676767a8749cfD5CDD21`](https://scan.botchain.ai/address/0x6F1C75f7844c6Ffb1b1d676767a8749cfD5CDD21#code) |
+| **StrategyRouter** | [`0xDcB2D4A08E10850845507B4ddfF95bfFE2411cE5`](https://scan.botchain.ai/address/0xDcB2D4A08E10850845507B4ddfF95bfFE2411cE5#code) |
+| **BdexV2LpStrategy** | [`0xe0040b6bCA2b68eFA75D0243B98AB71843C2c5B3`](https://scan.botchain.ai/address/0xe0040b6bCA2b68eFA75D0243B98AB71843C2c5B3#code) |
+
+Contracts it uses but does not own: USDT
+[`0xaBabc7Dd…7a3C`](https://scan.botchain.ai/address/0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C),
+the BDEX V2 USDT/WBOT pair
+[`0xdc7547f3…b98d`](https://scan.botchain.ai/address/0xdc7547f3cEa82C6Af7fd420656cE532C6da9b98d),
+and BDEX V2 Router02 `0x1414eD29…9e76`.
+
+**The caps here are two and five USDT, and that is not a typo.** Mainnet's USDT/WBOT pool holds
+**25.97 USDT** against testnet's 6,568 — see [Mainnet](#mainnet) for the survey of all 27 BDEX
+pairs and why the one deep pool on the chain cannot be used. The vault is sized to the venue that
+exists rather than the one it would prefer, so it is capped at 5 USDT of TVL with 2 in the strategy
+leg. Raising both is a config change and a redeploy the day the pool is deeper.
+
+The mainnet vault is **live and empty**: deploying cost 0.161 BOT of the 0.25 funded, and seeding
+it would mean buying USDT through a pool that thin. The full loop is exercised on testnet below,
+against the same contracts compiled from the same source.
+
+---
+
 ## Live deployment — BOT Chain Testnet (chain 968)
 
 All three contracts are deployed and **verified with source** on
 [BOTScan](https://scan.bohr.life). The full deposit → allocate → harvest → withdraw loop has run
-on chain against real BDEX liquidity.
+on chain against real BDEX liquidity, and this is the deployment to connect a wallet to if you
+want to use the thing.
 
 | | Address |
 |---|---|
@@ -282,7 +313,8 @@ RECIPIENT=0x… npm run fund:testnet   # send a test wallet gas + USDT to try th
 `preflight` earns its place: every check it makes otherwise costs a failed deploy to discover — an
 RPC that does not resolve, a chainId disagreeing with the config, an unfunded deployer, a DEX pair
 that does not exist, or a pool too thin to enter. It caught a stale `ASSET_DECIMALS=18` that would
-have made every amount in the deployment wrong by a factor of 10¹².
+have made every amount in the deployment wrong by a factor of 10¹², and it blocked the first
+mainnet deploy over a testnet-sized `LEG_CAP` — twice earning its keep on the one thing it does.
 
 `scan` and `inspect` answer the question preflight cannot, because preflight only checks the leg
 already in the config: *is this the right pool at all?* `scan` ranks every BDEX pair by how much
@@ -299,8 +331,15 @@ the router, both keeping the vault address.
 
 ### Mainnet
 
-Mainnet is deliberately last. Chain 677, USDT `0xaBabc7Dd…7a3C`, BDEX Router02 `0x1414eD29…9e76` —
-all defaulted in `scripts/config.ts`, so the deploy needs no addresses passed in.
+Mainnet was deliberately last, and is now **deployed and verified** — addresses above. Chain 677,
+USDT `0xaBabc7Dd…7a3C`, BDEX Router02 `0x1414eD29…9e76`, all defaulted in `scripts/config.ts`, so
+the deploy needed no addresses passed in. It cost **0.161 BOT** at 20 gwei: 2.48M gas for the
+vault, 2.54M for the router, 2.72M for the adapter, and ~0.3M to configure.
+
+Position caps are scoped per network — `MAINNET_LEG_CAP` and `TESTNET_LEG_CAP`, with no shared
+fallback. That is not tidiness. A leftover `LEG_CAP=500` in `.env`, correct for testnet, silently
+overrode the mainnet default of 2 on the first attempt; preflight refused the deploy, and the
+variable was then scoped so the wrong value cannot be reached rather than merely caught.
 
 ```bash
 npm run scan:mainnet       # every BDEX pair holding USDT, ranked by depth
@@ -351,8 +390,12 @@ directory:
 |---|---|
 | Root Directory | `web` |
 | Framework | Next.js (auto-detected) |
-| `NEXT_PUBLIC_DEFAULT_CHAIN_ID` | `968` for testnet, `677` after mainnet |
+| `NEXT_PUBLIC_DEFAULT_CHAIN_ID` | optional — defaults to `677` in code; set `968` to target testnet |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | optional — only adds the WalletConnect QR flow |
+
+The default chain is a code fallback rather than a required env var on purpose: a hosted build
+with no environment set would otherwise have pointed at testnet while this README advertised
+mainnet addresses.
 
 Addresses reach the app only through `contracts.generated.ts`, which is committed, so the frontend
 builds on a clean clone with no contract build step. After redeploying contracts, run
@@ -452,7 +495,8 @@ Frontend design system derived from [mystiquemide/kyvrane](https://github.com/my
 | RPC | https://rpc.botchain.ai | https://rpc.bohr.life |
 | Explorer | https://scan.botchain.ai | https://scan.bohr.life |
 | Faucet | — | https://faucet.botchain.ai/basic (10 tBOT / 24h) |
-| Vault | not yet deployed | [`0x901e837d…AC14FFab`](https://scan.bohr.life/address/0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab#code) |
+| Vault | [`0x6F1C75f7…fD5CDD21`](https://scan.botchain.ai/address/0x6F1C75f7844c6Ffb1b1d676767a8749cfD5CDD21#code) | [`0x901e837d…AC14FFab`](https://scan.bohr.life/address/0x901e837d0B750b2faC72c6D5a67dfFAcAC14FFab#code) |
+| Deposit cap | 5 USDT (pool holds 26) | 1,000 USDT (pool holds 6,568) |
 
 BOT Chain: https://www.botchain.ai/en · Dev docs: https://dev-docs.botchain.ai ·
 BDEX addresses: https://dev-docs.botchain.ai/docs/DEX/contract-addresses/

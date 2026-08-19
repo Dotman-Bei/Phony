@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { connect, disconnect, getAccount, getChainId, switchChain } from "wagmi/actions";
 
-import { botChain, botTestnet, hardhatChain, supportedChains, explorerUrlFor } from "@/lib/chains";
+import {
+  botChain,
+  botTestnet,
+  defaultChainId,
+  hardhatChain,
+  supportedChains,
+  explorerUrlFor,
+} from "@/lib/chains";
 import { configuredChainIds, dataModeFor, deploymentFor, legsFor } from "@/lib/contracts";
 import { createTestConfig, TEST_ACCOUNT } from "./fixtures";
 
@@ -89,9 +96,31 @@ describe("what the app knows per chain", () => {
     expect(record?.asset.decimals).to.equal(6);
   });
 
-  it("reports live provenance, with no demo state to fall into", () => {
-    expect(dataModeFor(968)).to.equal("live");
-    expect(deploymentFor(968)?.sources).to.equal("live");
+  it("has a deployment for mainnet 677", () => {
+    expect(configuredChainIds()).to.contain(677);
+
+    const record = deploymentFor(677);
+    expect(record).to.not.equal(null);
+    expect(record?.asset.symbol).to.equal("USDT");
+    expect(record?.asset.decimals).to.equal(6);
+
+    // Mainnet's pool is ~250x thinner than testnet's, so it is deployed at a much smaller
+    // cap. Pinning it here catches a testnet-sized manifest being shipped as mainnet — the
+    // mistake a shared LEG_CAP in .env very nearly caused on the first mainnet deploy.
+    expect(Number(record?.config.depositCap)).to.be.lessThan(100);
+  });
+
+  it("defaults to mainnet before a wallet connects", () => {
+    // The hosted build sets no environment, so this fallback is what the live site uses.
+    expect(defaultChainId).to.equal(677);
+    expect(deploymentFor(defaultChainId)).to.not.equal(null);
+  });
+
+  it("reports live provenance on both chains, with no demo state to fall into", () => {
+    for (const id of [677, 968]) {
+      expect(dataModeFor(id)).to.equal("live");
+      expect(deploymentFor(id)?.sources).to.equal("live");
+    }
   });
 
   it("reports an unconfigured chain instead of guessing an address", () => {
